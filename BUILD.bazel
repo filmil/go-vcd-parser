@@ -1,0 +1,23 @@
+load("@gazelle//:def.bzl", "gazelle")
+
+# bazel run //:gazelle
+# gazelle:prefix github.com/filmil/go-vcd-parser
+gazelle(name = "gazelle")
+
+load("@buildifier_prebuilt//:rules.bzl", "buildifier")
+
+# bazel run //:buildifier
+buildifier(
+    name = "buildifier",
+)
+
+# bazel run //:gazelle-update-repos
+gazelle(
+    name = "gazelle-update-repos",
+    args = [
+        "-from_file=go.mod",
+        "-to_macro=deps.bzl%go_dependencies",
+        "-prune",
+    ],
+    command = "update-repos",
+)

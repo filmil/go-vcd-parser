@@ -1,0 +1,18 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "vcd",
+    srcs = ["pkg.go"],
+    importpath = "github.com/filmil/go-vcd-parser/vcd",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_alecthomas_participle_v2//:participle",
+        "@com_github_alecthomas_participle_v2//lexer",
+    ],
+)
+
+go_test(
+    name = "vcd_test",
+    srcs = ["pkg_test.go"],
+    embed = [":vcd"],
+)
