@@ -2,3 +2,4 @@
 try-import %workspace%/user.bazelrc
 
 # Add project-wide settings below.
+test --test_output=errors
