@@ -40,12 +40,13 @@ func GenKeywordTokens() []lexer.SimpleRule {
 		// These are implemented via special tokenizer states.
 		//"comment",
 		//"date",
+		//"var",
+		//"version",
+
 		"enddefinitions",
 		"scope",
 		"timescale",
 		"upscope",
-		"var",
-		//"version",
 		"dumpall",
 		"dumpon",
 		"dumpoff",
@@ -134,10 +135,18 @@ func NewLexer() *lexer.StatefulDefinition {
 			{Name: "KwDate", Pattern: `\$date`, Action: lexer.Push("DateTokens")},
 			{Name: "KwComment", Pattern: `\$comment`, Action: lexer.Push("CommentTokens")},
 			{Name: "KwVersion", Pattern: `\$version`, Action: lexer.Push("VersionTokens")},
+			{Name: "KwVar", Pattern: `\$var`, Action: lexer.Push("VarTokens")},
 		}),
 		"DateTokens": anyWordsEndingWithKwEnd,
 		// Is this unnecessary?
 		"CommentTokens": {lexer.Include("DateTokens")},
 		"VersionTokens": {lexer.Include("DateTokens")},
+		"VarTokens": {
+			// Required for variable[msb:lsb]
+			{Name: "Lb", Pattern: `\[`, Action: nil},
+			{Name: "Rb", Pattern: `\]`, Action: nil},
+			{Name: "Co", Pattern: `:`, Action: nil},
+			lexer.Include("Root"),
+		},
 	})
 }
