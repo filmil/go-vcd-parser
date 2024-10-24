@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestParses(t *testing.T) {
+func TestBasicParse(t *testing.T) {
 	t.Parallel()
 	tests := []string{
 		"",
@@ -48,10 +48,33 @@ func TestParses(t *testing.T) {
          $end
         `,
 		`$var
+            integer 32 (2 index[6]
+         $end
+        `,
+		`$var
         integer 32 (2 index[ 6 : 10 ]
          $end
         `,
+		`$var
+        integer 32 (2 index[6:10 ]
+         $end
+        `,
+		`
+$var reg 32 (k accumulator[31:0] $end
+        `,
 		// 18.2.3.9
+		`
+        $dumpall 1*@ x*# 0*$ bx (k $end
+        `,
+
+		// 18.2.3.10
+		`$dumpoff 1*@ x*# 0*$ bx (k $end`,
+
+		// 18.2.3.11
+		`$dumpon 1*@ x*# 0*$ bx (k $end`,
+
+		// 18.2.3.12
+		`$dumpvars x*# z*$ b0 (k $end`,
 	}
 
 	for i, test := range tests {
