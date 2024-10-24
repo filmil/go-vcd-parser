@@ -24,3 +24,15 @@ go_test(
     ],
     embed = [":vcd"],
 )
+
+go_test(
+    name = "vcd_files_test",
+    srcs = [
+        "vcd_files_test.go",
+    ],
+    embed = [":vcd"],
+    data = [
+        "//vcd/samples",
+    ],
+    rundir = "vcd/samples",
+)

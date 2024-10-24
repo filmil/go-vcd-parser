@@ -1,0 +1,6 @@
+package(default_visibility = [ "//vcd:__pkg__"])
+
+filegroup(
+    name = "samples",
+    srcs = glob(["*.vcd"])
+)

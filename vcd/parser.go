@@ -47,7 +47,7 @@ type IdT struct {
     Name string `@Identifier`
     Index *int `( "[" @Int "]"`
     MsbIndex *int `| "[" @Int `
-    LsbIndex *int `  ":" @Int "]" )?`
+    LsbIndex *int `":" @Int "]")?`
 }
 
 type VarTypeT struct {
@@ -208,24 +208,42 @@ func (self ScopeKindT) Kind() ScopeKindCode {
 type SimulationCommandT struct {
 	Pos lexer.Position
 
-	SimulationCommand1 SimulationCommand1T `@@`
+    Dumpall DumpallT `@@`
+    Dumpoff DumpoffT `| @@`
+    Dumpon DumponT `| @@`
+    Dumpvars DumpvarsT `| @@`
 	SimulationTime     SimulationTimeT     `| @@`
 	ValueChange        ValueChangeT        `| @@`
 }
 
-type SimulationCommand1T struct {
-	Pos lexer.Position
-
-	SimulationKeyword SimulationKeywordT `@@`
+type DumpallT struct {
+    Kw bool `@KwDumpall`
 	ValueChange       []*ValueChangeT    `@@*`
-	End               bool               `@KwEnd`
+    KwEnd bool `@KwEnd`
+}
+
+type DumpoffT struct {
+    Kw bool `@KwDumpoff`
+	ValueChange       []*ValueChangeT    `@@*`
+    KwEnd bool `@KwEnd`
+}
+
+type DumponT struct {
+    Kw bool `@KwDumpon`
+	ValueChange       []*ValueChangeT    `@@*`
+    KwEnd bool `@KwEnd`
+}
+
+type DumpvarsT struct {
+    Kw bool `@KwDumpvars`
+	ValueChange       []*ValueChangeT    `@@*`
+    KwEnd bool `@KwEnd`
 }
 
 type SimulationKeywordT struct {
 	Pos lexer.Position
 
-	DumpAll  bool `@KwDumpall`
-	DumpOff  bool `| @KwDumpoff`
+	DumpOff  bool `@KwDumpoff`
 	DumpOn   bool `| @KwDumpon`
 	DumpVars bool `| @KwDumpvars`
 }
@@ -247,7 +265,7 @@ type ScalarValueChangeT struct {
 	Pos lexer.Position
 
 	Value          ValueT `@@`
-	IdentifierCode string `| @String`
+	IdentifierCode string `| @IdCode`
 }
 
 type ValueT struct {
@@ -267,14 +285,14 @@ type VectorValueChange1T struct {
 	Pos lexer.Position
 
 	BinaryNumber   string `@Binstring`
-	IdentifierCode string `@String`
+	IdentifierCode string `@IdCode`
 }
 
 type VectorValueChange3T struct {
 	Pos lexer.Position
 
 	RealNumber     string `@RealString`
-	IdentifierCode string `@String`
+	IdentifierCode string `@IdCode`
 }
 
 func NewParser() *participle.Parser[VCDFile] {
@@ -282,6 +300,6 @@ func NewParser() *participle.Parser[VCDFile] {
 	return participle.MustBuild[VCDFile](
         participle.Lexer(NewLexer()),
         // For " variable[foo], variable[foo:bar]"
-        participle.UseLookahead(2),
+        participle.UseLookahead(10),
     )
 }
