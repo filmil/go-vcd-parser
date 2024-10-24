@@ -13,7 +13,7 @@ func TestParses(t *testing.T) {
 		input string
 	}{
 		{""},
-		{`$date something $end`},
+		{`$date something else $end`},
 	}
 
 	for i, test := range tests {
@@ -21,8 +21,8 @@ func TestParses(t *testing.T) {
 		t.Run(fmt.Sprintf("rule %v", i), func(t *testing.T) {
 			parser := NewParser()
 			r := strings.NewReader(test.input)
-			if _, err := parser.Parse(fmt.Sprintf("rule %v", i), r); err != nil {
-				t.Errorf("parse error: `%v`: %v", test.input, err)
+			if _, err := parser.Parse(fmt.Sprintf("(rule %v)", i), r); err != nil {
+				t.Errorf("parse error: `%v`: %+v", test.input, err)
 			}
 
 		})
@@ -38,21 +38,22 @@ func TestBinstring(t *testing.T) {
 		{
 			pattern: BinstringPattern,
 			yes:     []string{"b10", "bzZ10z01"},
-			no:      []string{"b|"},
+			no:      []string{"", "b|"},
 		},
 		{
 			pattern: RealStringPattern,
 			yes:     []string{"r10.0", "R10.0", "r-10.0"},
-			no:      []string{"q10.0"},
+			no:      []string{"", "q10.0"},
 		},
 		{
 			pattern: FloatPattern,
 			yes:     []string{"1.0", "1", "0", "-1", "-1e90"},
+			no:      []string{""},
 		},
 		{
 			pattern: IntPattern,
 			yes:     []string{"1", "0", "-42"},
-			no:      []string{"1.0", "hello"},
+			no:      []string{"", "1.0", "hello"},
 		},
 		{
 			pattern: StringPattern,
@@ -62,7 +63,7 @@ func TestBinstring(t *testing.T) {
 		{
 			pattern: TimestampPattern,
 			yes:     []string{"#0", "#424242"},
-			no:      []string{"$ 0", "$ 0", "#-42", "# 42"},
+			no:      []string{"", "$ 0", "$ 0", "#-42", "# 42"},
 		},
 	}
 
