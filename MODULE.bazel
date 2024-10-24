@@ -1,12 +1,5 @@
-###############################################################################
-# Bazel now uses Bzlmod by default to manage external dependencies.
-# Please consider migrating your external dependencies from WORKSPACE to MODULE.bazel.
-#
-# For more details, please check https://github.com/bazelbuild/bazel/issues/18958
-###############################################################################
-
 module(
-    name = "bazel-go-basic",
+    name = "go-vcd-parser",
     version = "0.0",
 )
 
@@ -18,14 +11,13 @@ bazel_dep(name = "buildifier_prebuilt", version = "6.4.0")
 
 go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
 
-# Download an SDK for the host OS & architecture as well as common remote execution platforms.
 go_sdk.download(version = "1.23.2")
 
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
 
-# All *direct* Go dependencies of the module have to be listed explicitly.
-use_repo(go_deps,
+use_repo(
+    go_deps,
     "com_github_alecthomas_participle_v2",
+    "org_golang_x_text",
 )
-

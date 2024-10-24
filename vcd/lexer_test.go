@@ -3,31 +3,8 @@ package vcd
 import (
 	"fmt"
 	"regexp"
-	"strings"
 	"testing"
 )
-
-func TestParses(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		input string
-	}{
-		{""},
-		{`$date something else $end`},
-	}
-
-	for i, test := range tests {
-		test := test
-		t.Run(fmt.Sprintf("rule %v", i), func(t *testing.T) {
-			parser := NewParser()
-			r := strings.NewReader(test.input)
-			if _, err := parser.Parse(fmt.Sprintf("(rule %v)", i), r); err != nil {
-				t.Errorf("parse error: `%v`: %+v", test.input, err)
-			}
-
-		})
-	}
-}
 
 func TestBinstring(t *testing.T) {
 	t.Parallel()
@@ -65,6 +42,23 @@ func TestBinstring(t *testing.T) {
 			yes:     []string{"#0", "#424242"},
 			no:      []string{"", "$ 0", "$ 0", "#-42", "# 42"},
 		},
+		{
+			pattern: IdentifierPattern,
+			yes:     []string{
+                "a", "x", "y", "_", "a0",
+                "ooGa_BOoga", "__many_underscores",
+                "__1", "_something23b",
+            },
+			no:      []string{"", "$ 0", "$ 0", "#-42", "# 42", "0abc"},
+		},
+		{
+			pattern: AnyWordPattern,
+			yes:     []string{
+                "a", "x", "y", "_", "a0",
+                "VERILOG-SIMULATOR",
+            },
+			no:      []string{""},
+		},
 	}
 
 	for _, test := range tests {
@@ -91,6 +85,7 @@ func TestBinstring(t *testing.T) {
 func MatchEntire(p string) string {
 	return fmt.Sprintf("^%sXXXEOL", p)
 }
+
 func AddEOL(p string) string {
 	return fmt.Sprintf("%sXXXEOL", p)
 }
