@@ -24,6 +24,7 @@ type DeclarationCommandT struct {
     Var VarT `| @@`
 	Date           string `| @KwDate @AnyNonspace* @KwEndSpecial`
 	Version        string `| @KwVersion @AnyNonspace* @KwEndSpecial`
+	Attrbegin      bool `| @KwAttrbegin @AnyNonspace* @KwEndSpecial`
 	EndDefinitions bool   `| @KwEnddefinitions @KwEnd`
 	Scope          ScopeT `| @@`
     Timescale TimescaleT `| @@`
@@ -70,6 +71,8 @@ type VarTypeT struct {
     Wand bool `| "wand"`
     Wire bool `| "wire"`
     Wor bool `| "wor"`
+
+    Logic bool `| "logic"`
 }
 
 // VarKindCode is the type code for a variable.
@@ -93,6 +96,10 @@ const (
     VarKindWand
     VarKindWire
     VarKindWor
+
+    // Extensions?
+    VarKindLogic
+
     VarKindUnknown
 )
 
@@ -115,6 +122,7 @@ func (self VarTypeT) GetVarKind() VarKindCode {
     case self.Wand: return VarKindWand
     case self.Wire: return VarKindWire
     case self.Wor: return VarKindWor
+    case self.Logic: return VarKindLogic
     }
     return VarKindUnknown
 }
@@ -178,6 +186,8 @@ const (
 	ScopeKindModule
 	ScopeKindFunction
 	ScopeKindTask
+	ScopeKindVHDLArchitecture
+	ScopeKindVHDLRecord
 	ScopeKindUnknown
 )
 
@@ -187,6 +197,10 @@ type ScopeKindT struct {
 	Function bool `| "function"`
 	Module   bool `| "module"`
 	Task     bool `| "task"`
+
+    // Extensions?
+	VHDLArchitecture     bool `| "vhdl_architecture"`
+	VHDLRecord     bool `| "vhdl_record"`
 }
 
 func (self ScopeKindT) Kind() ScopeKindCode {
@@ -201,6 +215,10 @@ func (self ScopeKindT) Kind() ScopeKindCode {
 		return ScopeKindModule
 	case self.Task:
 		return ScopeKindTask
+    case self.VHDLArchitecture:
+        return ScopeKindVHDLArchitecture
+    case self.VHDLRecord:
+        return ScopeKindVHDLRecord
 	}
 	return ScopeKindUnknown
 }
@@ -214,6 +232,7 @@ type SimulationCommandT struct {
     Dumpvars DumpvarsT `| @@`
 	SimulationTime     SimulationTimeT     `| @@`
 	ValueChange        ValueChangeT        `| @@`
+	Attrbegin      bool `| @KwAttrbegin @AnyNonspace* @KwEndSpecial`
 }
 
 type DumpallT struct {

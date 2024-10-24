@@ -136,11 +136,13 @@ func NewLexer() *lexer.StatefulDefinition {
 			{Name: "KwComment", Pattern: `\$comment`, Action: lexer.Push("CommentTokens")},
 			{Name: "KwVersion", Pattern: `\$version`, Action: lexer.Push("VersionTokens")},
 			{Name: "KwVar", Pattern: `\$var`, Action: lexer.Push("VarTokens")},
+			{Name: "KwAttrbegin", Pattern: `\$attrbegin`, Action: lexer.Push("AttrBeginTokens")},
 		}),
 		"DateTokens": anyWordsEndingWithKwEnd,
 		// Is this unnecessary?
-		"CommentTokens": {lexer.Include("DateTokens")},
-		"VersionTokens": {lexer.Include("DateTokens")},
+		"CommentTokens":   {lexer.Include("DateTokens")},
+		"VersionTokens":   {lexer.Include("DateTokens")},
+		"AttrBeginTokens": {lexer.Include("DateTokens")},
 		"VarTokens": {
 			// Required for variable[msb:lsb]
 			{Name: "Lb", Pattern: `\[`, Action: nil},
