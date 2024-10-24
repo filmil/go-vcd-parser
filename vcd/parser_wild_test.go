@@ -19,6 +19,8 @@ func TestParseFromTheWild(t *testing.T) {
 		`$var string 0 C bus_is_read $end`,
 		`$var logic 1 [ uart_tx_data $end`,
 		`$var logic 8 h fifo_memory[0][7:0] $end`,
+		`$var logic 8 0! fifo_memory[38][7:0] $end`,
+		`$var logic 8 :! fifo_memory[48][7:0] $end`,
 	}
 
 	for i, test := range tests {
