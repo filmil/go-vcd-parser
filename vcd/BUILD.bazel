@@ -34,5 +34,5 @@ go_test(
     data = [
         "//vcd/samples",
     ],
-    rundir = "vcd/samples",
+    rundir = "vcd",
 )
