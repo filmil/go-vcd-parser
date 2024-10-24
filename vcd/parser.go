@@ -39,7 +39,7 @@ type VarT struct {
     Kw bool `@KwVar`
     VarType VarTypeT `@@`
     Size int `@Int`
-    Code string `@IdCode`
+    Code string `(@IdCode|@Identifier|@Int|@Co|@Lb|@Rb)` // Concession so we can admit "K" and "*K" and ":" and "[" etc.
     Id IdT `@@`
     KwEnd bool `@KwEnd`
 }
@@ -72,7 +72,9 @@ type VarTypeT struct {
     Wire bool `| "wire"`
     Wor bool `| "wor"`
 
+    // Extensions?
     Logic bool `| "logic"`
+    String bool `| "string"`
 }
 
 // VarKindCode is the type code for a variable.

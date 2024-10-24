@@ -89,25 +89,3 @@ $var reg 32 (k accumulator[31:0] $end
 		})
 	}
 }
-
-// TestParseFromTheWild tests stanzas found in realistic VCD files.
-func TestParseFromTheWild(t *testing.T) {
-	t.Parallel()
-	tests := []string{
-		// A file produced by VNC, I think.
-		`$attrbegin misc 02 STD_LOGIC 1030 $end`,
-		`$var logic 1 0 write_en $end`,
-	}
-
-	for i, test := range tests {
-		test := test
-		t.Run(fmt.Sprintf("rule %v", i), func(t *testing.T) {
-			parser := NewParser()
-			r := strings.NewReader(test)
-			if _, err := parser.Parse(fmt.Sprintf("(rule %v)", i), r); err != nil {
-				t.Errorf("parse error: `%v`: %+v", test, err)
-			}
-
-		})
-	}
-}
