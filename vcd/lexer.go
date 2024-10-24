@@ -115,6 +115,7 @@ func SimpleRules(additions []lexer.Rule) []lexer.Rule {
 const (
 	// Any string that consists of non-whitespace.
 	AnyWordPattern = `\S+`
+	PunctPattern   = "([\\(\\)!-/:-@[-`{-~])+\\S*"
 )
 
 // anyWordsEndingWithKwEnd is a set of lexical rules that accept a sequence of

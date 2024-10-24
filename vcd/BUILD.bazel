@@ -26,13 +26,19 @@ go_test(
 )
 
 go_test(
-    name = "vcd_files_test",
+    name = "parser_wild_test",
     srcs = [
-        "vcd_files_test.go",
+        "parser_wild_test.go",
     ],
     embed = [":vcd"],
+)
+
+go_test(
+    name = "vcd_files_test",
+    srcs = ["vcd_files_test.go"],
     data = [
         "//vcd/samples",
     ],
+    embed = [":vcd"],
     rundir = "vcd",
 )
