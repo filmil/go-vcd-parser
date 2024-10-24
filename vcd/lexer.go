@@ -115,6 +115,7 @@ func SimpleRules(additions []lexer.Rule) []lexer.Rule {
 const (
 	// Any string that consists of non-whitespace.
 	AnyWordPattern = `\S+`
+	PunctPattern   = "([\\(\\)!-/:-@[-`{-~])+\\S*"
 )
 
 // anyWordsEndingWithKwEnd is a set of lexical rules that accept a sequence of
@@ -136,17 +137,48 @@ func NewLexer() *lexer.StatefulDefinition {
 			{Name: "KwComment", Pattern: `\$comment`, Action: lexer.Push("CommentTokens")},
 			{Name: "KwVersion", Pattern: `\$version`, Action: lexer.Push("VersionTokens")},
 			{Name: "KwVar", Pattern: `\$var`, Action: lexer.Push("VarTokens")},
+			{Name: "KwAttrbegin", Pattern: `\$attrbegin`, Action: lexer.Push("AttrBeginTokens")},
 		}),
 		"DateTokens": anyWordsEndingWithKwEnd,
 		// Is this unnecessary?
-		"CommentTokens": {lexer.Include("DateTokens")},
-		"VersionTokens": {lexer.Include("DateTokens")},
+		"CommentTokens":   {lexer.Include("DateTokens")},
+		"VersionTokens":   {lexer.Include("DateTokens")},
+		"AttrBeginTokens": {lexer.Include("DateTokens")},
 		"VarTokens": {
+			{Name: "KwEndSpecial", Pattern: `\$end(\s+|$)`, Action: lexer.Pop()},
 			// Required for variable[msb:lsb]
 			{Name: "Lb", Pattern: `\[`, Action: nil},
 			{Name: "Rb", Pattern: `\]`, Action: nil},
 			{Name: "Co", Pattern: `:`, Action: nil},
-			lexer.Include("Root"),
+			{
+				Name:    "Identifier",
+				Pattern: IdentifierPattern,
+			},
+			{
+				Name:    "Int",
+				Pattern: IntPattern,
+				Action:  lexer.Push("VarTokens2"),
+			},
+			{
+				Name:    "String",
+				Pattern: StringPattern,
+			},
+			{Name: "AnyNonspace", Pattern: AnyWordPattern, Action: nil},
+			{
+				Name:    "ws",
+				Pattern: WhitespacePattern,
+			},
+		},
+		"VarTokens2": {
+			{Name: "Lb", Pattern: `\[`, Action: lexer.Pop()},
+			{Name: "Rb", Pattern: `\]`, Action: lexer.Pop()},
+			{Name: "Co", Pattern: `:`, Action: lexer.Pop()},
+			{Name: "Punct", Pattern: "[\\S!-/:-@[-`{-~]+", Action: lexer.Pop()},
+			{Name: "AnyNonspace", Pattern: AnyWordPattern, Action: lexer.Pop()},
+			{
+				Name:    "ws",
+				Pattern: WhitespacePattern,
+			},
 		},
 	})
 }

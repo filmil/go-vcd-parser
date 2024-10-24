@@ -56,6 +56,16 @@ func TestBinstring(t *testing.T) {
 			yes:     []string{
                 "a", "x", "y", "_", "a0",
                 "VERILOG-SIMULATOR",
+                ":",
+            },
+			no:      []string{""},
+		},
+		{
+			pattern: PunctPattern,
+			yes:     []string{
+                ";", ":", "(", "_", ")",
+                ";.", ":.", "(", "_", ")",
+                ":",
             },
 			no:      []string{""},
 		},
