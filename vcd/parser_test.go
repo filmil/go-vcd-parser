@@ -83,7 +83,7 @@ $var reg 32 (k accumulator[31:0] $end
 			parser := NewParser[VCDFile]()
 			r := strings.NewReader(test)
 			if _, err := parser.Parse(fmt.Sprintf("(rule %v)", i), r); err != nil {
-				t.Errorf("parse error: `%v`: %+v", test, err)
+				t.Errorf("parse error:\n\t\t`%v`\n\t\t\t%v", test, err)
 			}
 
 		})
@@ -119,8 +119,15 @@ func TestBitParse(t *testing.T) {
 		input string
 	}{
 		{"0V#"},
+		{"0V"},
+		{"0VAB"},
+		{"0#"},
+		{"0##"},
+		{"0###"},
+		{"0VAB###"},
+		{"0###VAB"},
 	}
-	parser := NewParser[ValueChangeT]()
+	parser := NewIdParser[ScalarValueChangeT]()
 	for i, test := range tests {
 		test := test
 		t.Run(test.input, func(t *testing.T) {

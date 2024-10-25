@@ -42,8 +42,7 @@ func GenKeywordTokens() []lexer.SimpleRule {
 		//"date",
 		//"var",
 		//"version",
-
-		"enddefinitions",
+		//"enddefinitions",
 		"scope",
 		"timescale",
 		"upscope",
@@ -63,6 +62,37 @@ func GenKeywordTokens() []lexer.SimpleRule {
 		})
 	}
 	return ret
+}
+
+var stringlessRules = []lexer.SimpleRule{
+	{
+		Name:    "Timestamp",
+		Pattern: TimestampPattern,
+	},
+	{
+		Name:    "Binstring",
+		Pattern: BinstringPattern,
+	},
+	{
+		Name:    "RealString",
+		Pattern: RealStringPattern,
+	},
+	{
+		Name:    "Int",
+		Pattern: IntPattern,
+	},
+	{
+		Name:    "Float",
+		Pattern: FloatPattern,
+	},
+	{
+		Name:    "IdCode",
+		Pattern: AnyWordPattern,
+	},
+	{
+		Name:    "ws",
+		Pattern: WhitespacePattern,
+	},
 }
 
 var rules = []lexer.SimpleRule{
@@ -108,13 +138,20 @@ var rules = []lexer.SimpleRule{
 func SimpleRules(additions []lexer.Rule) []lexer.Rule {
 	ret := append(IntoRule(GenKeywordTokens()), additions...)
 	ret = append(ret, IntoRule(rules)...)
-	//fmt.Printf("ret: %+v", ret)
+	return ret
+}
+
+// SimpleStringlessRules is the same as above, except contains no "stringy" tokens, except
+// "any nonwhitespace"
+func SimpleStringlessRules(additions []lexer.Rule) []lexer.Rule {
+	ret := append(IntoRule(GenKeywordTokens()), additions...)
+	ret = append(ret, IntoRule(stringlessRules)...)
 	return ret
 }
 
 const (
 	// Any string that consists of non-whitespace.
-	AnyWordPattern = `\S+`
+	AnyWordPattern = `[^\r\n\t\f\v ]+`
 	PunctPattern   = "([\\(\\)!-/:-@[-`{-~])+\\S*"
 )
 
@@ -138,7 +175,7 @@ var anyWordsEndingWithKwEndWithWs = []lexer.Rule{
 //
 // The lexer is lightly stateful to allow date and comment keywords and such.
 func NewLexer() *lexer.StatefulDefinition {
-	return lexer.MustStateful(lexer.Rules{
+	rules := lexer.Rules{
 		"Root": SimpleRules([]lexer.Rule{
 			{Name: "KwDate", Pattern: `\$date`, Action: lexer.Push("DateTokens")},
 			{Name: "KwComment", Pattern: `\$comment`, Action: lexer.Push("CommentTokens")},
@@ -146,6 +183,7 @@ func NewLexer() *lexer.StatefulDefinition {
 			{Name: "KwVar", Pattern: `\$var`, Action: lexer.Push("VarTokens")},
 			{Name: "KwAttrbegin", Pattern: `\$attrbegin`, Action: lexer.Push("AttrBeginTokens")},
 			{Name: "KwAttrend", Pattern: `\$attrend`, Action: lexer.Push("AttrEndTokens")},
+			{Name: "KwEnddefinitions", Pattern: `\$enddefinitions`, Action: lexer.Push("AfterEnddefinitions")},
 		}),
 		"DateTokens": anyWordsEndingWithKwEnd,
 		// Is this unnecessary?
@@ -154,5 +192,20 @@ func NewLexer() *lexer.StatefulDefinition {
 		"AttrBeginTokens": {lexer.Include("DateTokens")},
 		"AttrEndTokens":   {lexer.Include("DateTokens")},
 		"VarTokens":       anyWordsEndingWithKwEndWithWs,
+
+		"AfterEnddefinitions": SimpleStringlessRules([]lexer.Rule{
+			{Name: "KwComment", Pattern: `\$comment`, Action: lexer.Push("CommentTokens")},
+		}),
+	}
+	//fmt.Printf("Rules: %+v", rules["AfterEnddefinitions"])
+	return lexer.MustStateful(rules)
+}
+
+func NewIdLexer() *lexer.StatefulDefinition {
+	return lexer.MustStateful(lexer.Rules{
+		"Root": SimpleStringlessRules([]lexer.Rule{
+			{Name: "KwComment", Pattern: `\$comment`, Action: lexer.Push("CommentTokens")},
+		}),
+		"CommentTokens": anyWordsEndingWithKwEnd,
 	})
 }
