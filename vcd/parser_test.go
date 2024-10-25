@@ -80,7 +80,7 @@ $var reg 32 (k accumulator[31:0] $end
 	for i, test := range tests {
 		test := test
 		t.Run(fmt.Sprintf("rule %v", i), func(t *testing.T) {
-			parser := NewParser()
+			parser := NewParser[VCDFile]()
 			r := strings.NewReader(test)
 			if _, err := parser.Parse(fmt.Sprintf("(rule %v)", i), r); err != nil {
 				t.Errorf("parse error: `%v`: %+v", test, err)
@@ -94,15 +94,36 @@ $var reg 32 (k accumulator[31:0] $end
 //
 // $var is special because the short id code is a very unusual token.
 func TestVarParse(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		input string
 	}{
 		{input: `$var logic 8 :! fifo_memory[48][7:0] $end`},
 	}
+	parser := NewParser[VCDFile]()
 	for i, test := range tests {
 		test := test
 		t.Run(test.input, func(t *testing.T) {
-			parser := NewParser()
+			r := strings.NewReader(test.input)
+			_, err := parser.Parse(fmt.Sprintf("(rule %v)", i), r)
+			if err != nil {
+				t.Errorf("parse error: input:`%+v`: %+v", test.input, err)
+			}
+		})
+	}
+}
+
+func TestBitParse(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		input string
+	}{
+		{"0V#"},
+	}
+	parser := NewParser[ValueChangeT]()
+	for i, test := range tests {
+		test := test
+		t.Run(test.input, func(t *testing.T) {
 			r := strings.NewReader(test.input)
 			_, err := parser.Parse(fmt.Sprintf("(rule %v)", i), r)
 			if err != nil {
