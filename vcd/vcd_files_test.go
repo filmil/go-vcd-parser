@@ -26,7 +26,7 @@ func TestVCDFiles(t *testing.T) {
 			if err != nil {
 				t.Errorf("could not open file: %v: %v", name, err)
 			}
-			parser := NewParser()
+			parser := NewParser[VCDFile]()
 
 			r := bufio.NewReader(f)
 

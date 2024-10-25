@@ -56,7 +56,7 @@ func TestBinstring(t *testing.T) {
 			yes:     []string{
                 "a", "x", "y", "_", "a0",
                 "VERILOG-SIMULATOR",
-                ":",
+                ":", "V#",
             },
 			no:      []string{""},
 		},

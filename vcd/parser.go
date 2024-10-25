@@ -1,8 +1,6 @@
 package vcd
 
 import (
-	"time"
-
 	participle "github.com/alecthomas/participle/v2"
 	"github.com/alecthomas/participle/v2/lexer"
 )
@@ -14,51 +12,49 @@ import (
 type VCDFile struct {
 	Pos lexer.Position
 
-	DeclarationCommand []*DeclarationCommandT `@@*`
-	SimulationCommand  []*SimulationCommandT  `@@*`
+	DeclarationCommand []*DeclarationCommandT `parser:"@@*"`
+	SimulationCommand  []*SimulationCommandT  `parser:"@@*"`
 }
 
 type DeclarationCommandT struct {
 	Pos lexer.Position
 
-	CommentText    string     `@KwComment @AnyNonspace* @KwEndSpecial`
-	Var            *VarT      `| @KwVar (@Ws? @AnyNonspace)* @Ws? @KwEndSpecial`
-	Date           string     `| @KwDate @AnyNonspace* @KwEndSpecial`
-	Version        string     `| @KwVersion @AnyNonspace* @KwEndSpecial`
-	Attrbegin      bool       `| @KwAttrbegin @AnyNonspace* @KwEndSpecial`
-	Attrend        bool       `| @KwAttrend @AnyNonspace* @KwEndSpecial`
-	EndDefinitions bool       `| @KwEnddefinitions @KwEnd`
-	Scope          ScopeT     `| @@`
-	Timescale      TimescaleT `| @@`
+	CommentText    string     `parser:"@KwComment @AnyNonspace* @KwEndSpecial"`
+	Var            *VarT      `parser:"| @KwVar (@Ws? @AnyNonspace)* @Ws? @KwEndSpecial"`
+	Date           string     `parser:"| @KwDate @AnyNonspace* @KwEndSpecial"`
+	Version        string     `parser:"| @KwVersion @AnyNonspace* @KwEndSpecial"`
+	Attrbegin      bool       `parser:"| @KwAttrbegin @AnyNonspace* @KwEndSpecial"`
+	Attrend        bool       `parser:"| @KwAttrend @AnyNonspace* @KwEndSpecial"`
+	EndDefinitions bool       `parser:"| @KwEnddefinitions (@KwEnd|@KwEndSpecial)"`
+	Scope          ScopeT     `parser:"| @@"`
+	Timescale      TimescaleT `parser:"| @@"`
 	Upscope        bool       `parser:"| @KwUpscope @KwEnd"`
-	//DeclarationKeyword DeclarationKeywordT `@@`
-	//CommandText        *string             `(@String) @KwEnd?`
 }
 
 type VarTypeT struct {
 	Pos lexer.Position
 
-	Event     bool `"event"`
-	Integer   bool `| "integer"`
-	Parameter bool `| "parameter"`
-	Real      bool `| "real"`
-	Reg       bool `| "reg"`
-	Supply0   bool `| "supply0"`
-	Supply1   bool `| "supply1"`
-	Time      bool `| "time"`
-	Tri       bool `| "tri"`
-	Triand    bool `| "triand"`
-	Trior     bool `| "trior"`
-	Trireg    bool `| "trireg"`
-	Tri0      bool `| "tri0"`
-	Tri1      bool `| "tri1"`
-	Wand      bool `| "wand"`
-	Wire      bool `| "wire"`
-	Wor       bool `| "wor"`
+	Event     bool `parser:"\"event\""`
+	Integer   bool `parser:"| \"integer\""`
+	Parameter bool `parser:"| \"parameter\""`
+	Real      bool `parser:"| \"real\""`
+	Reg       bool `parser:"| \"reg\""`
+	Supply0   bool `parser:"| \"supply0\""`
+	Supply1   bool `parser:"| \"supply1\""`
+	Time      bool `parser:"| \"time\""`
+	Tri       bool `parser:"| \"tri\""`
+	Triand    bool `parser:"| \"triand\""`
+	Trior     bool `parser:"| \"trior\""`
+	Trireg    bool `parser:"| \"trireg\""`
+	Tri0      bool `parser:"| \"tri0\""`
+	Tri1      bool `parser:"| \"tri1\""`
+	Wand      bool `parser:"| \"wand\""`
+	Wire      bool `parser:"| \"wire\""`
+	Wor       bool `parser:"| \"wor\""`
 
 	// Extensions?
-	Logic  bool `| "logic"`
-	String bool `| "string"`
+	Logic  bool `parser:"| \"logic\""`
+	String bool `parser:"| \"string\""`
 }
 
 // VarKindCode is the type code for a variable.
@@ -123,10 +119,10 @@ func (self VarT) GetVarKind() VarKindCode {
 type TimescaleT struct {
 	Pos lexer.Position
 
-	Kw     bool     `@KwTimescale`
-	Number int64    `@Int`
-	Unit   TimeUnit `@@`
-	Kw2    bool     `@KwEnd`
+	Kw     bool     `parser:"@KwTimescale"`
+	Number int64    `parser:"@Int"`
+	Unit   TimeUnit `parser:"@@"`
+	Kw2    bool     `parser:"@KwEnd"`
 }
 
 // AsSeconds returns the number of seconds (possibly fractional, possibly very small)
@@ -139,18 +135,13 @@ func (self TimescaleT) AsNanoseconds() float64 {
 	return self.AsSeconds() * 1e9
 }
 
-type SimDuration struct {
-	// durFemto is a Duration, but time.Nanosecond is used as time.FemtoSecond.
-	durFemto time.Duration
-}
-
 type TimeUnit struct {
-	Second      bool `"s"`
-	MilliSecond bool `| "ms"`
-	MicroSecond bool `| "us"`
-	NanoSecond  bool `| "ns"`
-	PicoSecond  bool `| "ps"`
-	FemtoSecond bool `| "fs"`
+	Second      bool `parser:"\"s\""`
+	MilliSecond bool `parser:"| \"ms\""`
+	MicroSecond bool `parser:"| \"us\""`
+	NanoSecond  bool `parser:"| \"ns\""`
+	PicoSecond  bool `parser:"| \"ps\""`
+	FemtoSecond bool `parser:"| \"fs\""`
 }
 
 func (self TimeUnit) Multiplier() float64 {
@@ -172,9 +163,9 @@ func (self TimeUnit) Multiplier() float64 {
 }
 
 type ScopeT struct {
-	Scope     bool       `@KwScope`
-	ScopeKind ScopeKindT `@@`
-	Id        string     `@Ident @KwEnd`
+	Scope     bool       `parser:"@KwScope"`
+	ScopeKind ScopeKindT `parser:"@@"`
+	Id        string     `parser:"@Ident @KwEnd"`
 }
 
 type ScopeKindCode int
@@ -191,15 +182,15 @@ const (
 )
 
 type ScopeKindT struct {
-	Begin    bool `"begin"`
-	Fork     bool `| "fork"`
-	Function bool `| "function"`
-	Module   bool `| "module"`
-	Task     bool `| "task"`
+	Begin    bool `parser:"\"begin\""`
+	Fork     bool `parser:"| \"fork\""`
+	Function bool `parser:"| \"function\""`
+	Module   bool `parser:"| \"module\""`
+	Task     bool `parser:"| \"task\""`
 
 	// Extensions?
-	VHDLArchitecture bool `| "vhdl_architecture"`
-	VHDLRecord       bool `| "vhdl_record"`
+	VHDLArchitecture bool `parser:"| \"vhdl_architecture\""`
+	VHDLRecord       bool `parser:"| \"vhdl_record\""`
 }
 
 func (self ScopeKindT) Kind() ScopeKindCode {
@@ -225,32 +216,32 @@ func (self ScopeKindT) Kind() ScopeKindCode {
 type SimulationCommandT struct {
 	Pos lexer.Position
 
-	Dumpall        DumpallT        `@@`
-	Dumpoff        DumpoffT        `| @@`
-	Dumpon         DumponT         `| @@`
-	Dumpvars       DumpvarsT       `| @@`
-	SimulationTime SimulationTimeT `| @@`
-	ValueChange    ValueChangeT    `| @@`
-	Attrbegin      bool            `| @KwAttrbegin @AnyNonspace* @KwEndSpecial`
-	Attrend        bool            `| @KwAttrend @AnyNonspace* @KwEndSpecial`
+	Dumpall        DumpallT        `parser:"@@"`
+	Dumpoff        DumpoffT        `parser:"| @@"`
+	Dumpon         DumponT         `parser:"| @@"`
+	Dumpvars       DumpvarsT       `parser:"| @@"`
+	SimulationTime SimulationTimeT `parser:"| @@"`
+	ValueChange    ValueChangeT    `parser:"| @@"`
+	Attrbegin      bool            `parser:"| @KwAttrbegin @AnyNonspace* @KwEndSpecial"`
+	Attrend        bool            `parser:"| @KwAttrend @AnyNonspace* @KwEndSpecial"`
 }
 
 type DumpallT struct {
-	Kw          bool            `@KwDumpall`
-	ValueChange []*ValueChangeT `@@*`
-	KwEnd       bool            `@KwEnd`
+	Kw          bool            `parser:"@KwDumpall"`
+	ValueChange []*ValueChangeT `parser:"@@*"`
+	KwEnd       bool            `parser:"@KwEnd"`
 }
 
 type DumpoffT struct {
-	Kw          bool            `@KwDumpoff`
-	ValueChange []*ValueChangeT `@@*`
-	KwEnd       bool            `@KwEnd`
+	Kw          bool            `parser:"@KwDumpoff"`
+	ValueChange []*ValueChangeT `parser:"@@*"`
+	KwEnd       bool            `parser:"@KwEnd"`
 }
 
 type DumponT struct {
-	Kw          bool            `@KwDumpon`
-	ValueChange []*ValueChangeT `@@*`
-	KwEnd       bool            `@KwEnd`
+	Kw          bool            `parser:"@KwDumpon"`
+	ValueChange []*ValueChangeT `parser:"@@*"`
+	KwEnd       bool            `parser:"@KwEnd"`
 }
 
 type DumpvarsT struct {
@@ -262,29 +253,29 @@ type DumpvarsT struct {
 type SimulationKeywordT struct {
 	Pos lexer.Position
 
-	DumpOff  bool `@KwDumpoff`
-	DumpOn   bool `| @KwDumpon`
-	DumpVars bool `| @KwDumpvars`
+	DumpOff  bool `parser:"@KwDumpoff"`
+	DumpOn   bool `parser:"| @KwDumpon"`
+	DumpVars bool `parser:"| @KwDumpvars"`
 }
 
 type SimulationTimeT struct {
 	Pos lexer.Position
 
-	DecimalNumber string `@Timestamp`
+	DecimalNumber string `parser:"@Timestamp"`
 }
 
 type ValueChangeT struct {
 	Pos lexer.Position
 
-	ScalarValueChange *ScalarValueChangeT `@@`
-	VectorValueChange *VectorValueChangeT `| @@`
+	ScalarValueChange *ScalarValueChangeT `parser:"@@"`
+	VectorValueChange *VectorValueChangeT `parser:"| @@"`
 }
 
 type ScalarValueChangeT struct {
 	Pos lexer.Position
 
-	Value          ValueT `@@`
-	IdentifierCode string `@IdCode`
+	Value  ValueT `parser:"@@"`
+	IdCode string `parser:"@IdCode"`
 }
 
 type ValueT struct {
@@ -296,29 +287,36 @@ type ValueT struct {
 type VectorValueChangeT struct {
 	Pos lexer.Position
 
-	VectorValueChange1 *VectorValueChange1T `@@`
-	VectorValueChange3 *VectorValueChange3T `| @@`
+	VectorValueChange1 *VectorValueChange1T `parser:"@@"`
+	VectorValueChange3 *VectorValueChange3T `parser:"| @@"`
 }
 
 type VectorValueChange1T struct {
 	Pos lexer.Position
 
-	BinaryNumber   string `@Binstring`
-	IdentifierCode string `@IdCode`
+	BinaryNumber string `parser:"@Binstring"`
+	IdCode       string `parser:"@IdCode"`
 }
 
 type VectorValueChange3T struct {
 	Pos lexer.Position
 
-	RealNumber     string `@RealString`
-	IdentifierCode string `@IdCode`
+	RealNumber     string `parser:"@RealString"`
+	IdentifierCode string `parser:"@IdCode"`
 }
 
-func NewParser[T any]() *participle.Parser[T] {
-	// Needs a lexer definition.
+func commonNewParser[T any](l *lexer.StatefulDefinition) *participle.Parser[T] {
 	return participle.MustBuild[T](
-		participle.Lexer(NewLexer()),
+		participle.Lexer(l),
 		// For " variable[foo], variable[foo:bar]"
 		participle.UseLookahead(5),
 	)
+}
+
+func NewParser[T any]() *participle.Parser[T] {
+	return commonNewParser[T](NewLexer())
+}
+
+func NewIdParser[T any]() *participle.Parser[T] {
+	return commonNewParser[T](NewIdLexer())
 }
