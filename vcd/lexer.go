@@ -154,41 +154,5 @@ func NewLexer() *lexer.StatefulDefinition {
 		"AttrBeginTokens": {lexer.Include("DateTokens")},
 		"AttrEndTokens":   {lexer.Include("DateTokens")},
 		"VarTokens":       anyWordsEndingWithKwEndWithWs,
-		//"VarTokens": {
-		//{Name: "KwEndSpecial", Pattern: `\$end(\s+|$)`, Action: lexer.Pop()},
-		//// Required for variable[msb:lsb]
-		//{Name: "Lb", Pattern: `\[`, Action: nil},
-		//{Name: "Rb", Pattern: `\]`, Action: nil},
-		//{Name: "Co", Pattern: `:`, Action: nil},
-		//{
-		//Name:    "Identifier",
-		//Pattern: IdentifierPattern,
-		//},
-		//{
-		//Name:    "Int",
-		//Pattern: IntPattern,
-		//Action:  lexer.Push("VarTokens2"),
-		//},
-		//{
-		//Name:    "String",
-		//Pattern: StringPattern,
-		//},
-		//{Name: "AnyNonspace", Pattern: AnyWordPattern, Action: nil},
-		//{
-		//Name:    "ws",
-		//Pattern: WhitespacePattern,
-		//},
-		//},
-		//"VarTokens2": {
-		//{Name: "Lb", Pattern: `\[`, Action: lexer.Pop()},
-		//{Name: "Rb", Pattern: `\]`, Action: lexer.Pop()},
-		//{Name: "Co", Pattern: `:`, Action: lexer.Pop()},
-		//{Name: "Punct", Pattern: "[\\S!-/:-@[-`{-~]+", Action: lexer.Pop()},
-		//{Name: "AnyNonspace", Pattern: AnyWordPattern, Action: lexer.Pop()},
-		//{
-		//Name:    "ws",
-		//Pattern: WhitespacePattern,
-		//},
-		//},
 	})
 }
