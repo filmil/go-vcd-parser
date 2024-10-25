@@ -75,7 +75,7 @@ var rules = []lexer.SimpleRule{
 		Pattern: BinstringPattern,
 	},
 	{
-		Name:    "Identifier",
+		Name:    "Ident",
 		Pattern: IdentifierPattern,
 	},
 	{
