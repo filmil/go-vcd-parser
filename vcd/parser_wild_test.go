@@ -21,6 +21,8 @@ func TestParseFromTheWild(t *testing.T) {
 		`$var logic 8 h fifo_memory[0][7:0] $end`,
 		`$var logic 8 0! fifo_memory[38][7:0] $end`,
 		`$var logic 8 :! fifo_memory[48][7:0] $end`,
+		`$attrend $end`,
+		`$dumpvars 0V# $end`,
 	}
 
 	for i, test := range tests {

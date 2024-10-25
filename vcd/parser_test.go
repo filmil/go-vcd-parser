@@ -89,3 +89,25 @@ $var reg 32 (k accumulator[31:0] $end
 		})
 	}
 }
+
+// TestVarParse tests the special treatment of the `$var` directive.
+//
+// $var is special because the short id code is a very unusual token.
+func TestVarParse(t *testing.T) {
+	tests := []struct {
+		input string
+	}{
+		{input: `$var logic 8 :! fifo_memory[48][7:0] $end`},
+	}
+	for i, test := range tests {
+		test := test
+		t.Run(test.input, func(t *testing.T) {
+			parser := NewParser()
+			r := strings.NewReader(test.input)
+			_, err := parser.Parse(fmt.Sprintf("(rule %v)", i), r)
+			if err != nil {
+				t.Errorf("parse error: input:`%+v`: %+v", test.input, err)
+			}
+		})
+	}
+}
