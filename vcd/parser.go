@@ -1,6 +1,8 @@
 package vcd
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	participle "github.com/alecthomas/participle/v2"
@@ -21,36 +23,97 @@ type DeclarationCommandT struct {
 	Pos lexer.Position
 
 	CommentText    string     `@KwComment @AnyNonspace* @KwEndSpecial`
-	Var            VarT       `| @@`
+	Var            *VarT      `| @KwVar (@Ws? @AnyNonspace)* @Ws? @KwEndSpecial`
 	Date           string     `| @KwDate @AnyNonspace* @KwEndSpecial`
 	Version        string     `| @KwVersion @AnyNonspace* @KwEndSpecial`
 	Attrbegin      bool       `| @KwAttrbegin @AnyNonspace* @KwEndSpecial`
+	Attrend        bool       `| @KwAttrend @AnyNonspace* @KwEndSpecial`
 	EndDefinitions bool       `| @KwEnddefinitions @KwEnd`
 	Scope          ScopeT     `| @@`
 	Timescale      TimescaleT `| @@`
-	Upscope        bool       `| @KwUpscope @KwEnd`
+	Upscope        bool       `parser:"| @KwUpscope @KwEnd"`
 	//DeclarationKeyword DeclarationKeywordT `@@`
 	//CommandText        *string             `(@String) @KwEnd?`
 }
 
-type VarT struct {
-	Pos lexer.Position
+// Capture implements custom capturing of tokens into VarT.
+func (self *VarT) Capture(tokens []string) error {
+	if self.p == nil {
+		p, err := participle.Build[IdT](participle.UseLookahead(3))
+		if err != nil {
+			return fmt.Errorf("could not build mini parser: %w", err)
 
-	Kw      bool     `@KwVar`
-	VarType VarTypeT `@@`
-	Size    int      `@Int`
-	Code    string   `(@Punct|@AnyNonspace|@Lb|@Rb|@Co|@Int|@String)` // Concession so we can admit "K" and "*K" and ":" and "[" etc.
-	Id      IdT      `@@`
-	KwEnd   bool     `@KwEndSpecial`
+		}
+		self.p = p
+	}
+	// Parsing 6 tokens total.
+	//
+	//	1    2     3 4 5   6
+	//
+	// `$var logic 1 ! clk[foo][bar] $end`
+	for _, t := range tokens {
+		t = strings.TrimSpace(t)
+		if t == "" {
+			continue
+		}
+		self.tokenCount++
+		switch self.tokenCount {
+		case 1: // First token to be read.
+			if t != "$var" {
+				return fmt.Errorf("expected keyword: `$var`, got: %v", t)
+			}
+		case 2: // Type
+			self.VarType = t
+			if self.GetVarKind() == VarKindUnknown {
+				return fmt.Errorf("unknown var type: `%v`", t)
+			}
+		case 3:
+			if _, err := fmt.Sscanf(t, "%d", &self.Size); err != nil {
+				return fmt.Errorf("expected length, got: %w", err)
+			}
+		case 4:
+			self.Code = t // This can be anything. Just consume it.
+		case 5: // This is where it gets tricky.
+			self.tokenCount-- // Make sure we come back to handle this again, until $end.
+			if t == "$end" {  // Try to extract identifier now.
+				idString := strings.Join(self.varTokens, "")
+				id, err := self.p.ParseString("<idString>", idString)
+				if err != nil {
+					return fmt.Errorf("could not parse Id: `%v`: %w", idString, err)
+				}
+				self.Id = *id
+				self.varTokens = nil
+			} else {
+				// While not accummulated yet, continue adding.
+				self.varTokens = append(self.varTokens, t)
+			}
+		}
+		return nil
+	}
+	return nil
+}
+
+type VarT struct {
+	Pos        lexer.Position
+	tokenCount int
+	varTokens  []string // Accumulated tokens that refer to the signal variable. Can be many.
+	p          *participle.Parser[IdT]
+
+	Kw      bool
+	VarType string
+	Size    int
+	Code    string
+	Id      IdT
+	KwEnd   bool
 }
 
 type IdT struct {
-	Name    string  `@Identifier`
-	Indices []*IdxT `@@*`
+	Name    string  `parser:"@Ident"`
+	Indices []*IdxT `parser:"@@*"`
 }
 
 type IdxT struct {
-	Index    *int `("[" @Int "]"`
+	Index    *int `parser:"(\"[\" @Int \"]\""`
 	MsbIndex *int `| "[" @Int `
 	LsbIndex *int `":" @Int "]")`
 }
@@ -105,50 +168,39 @@ const (
 
 	// Extensions?
 	VarKindLogic
-
+	VarKindString
 	VarKindUnknown
 )
 
-func (self VarTypeT) GetVarKind() VarKindCode {
-	switch {
-	case self.Event:
-		return VarKindEvent
-	case self.Integer:
-		return VarKindInteger
-	case self.Parameter:
-		return VarKindParameter
-	case self.Real:
-		return VarKindReal
-	case self.Reg:
-		return VarKindReg
-	case self.Supply0:
-		return VarKindSupply0
-	case self.Supply1:
-		return VarKindSupply1
-	case self.Time:
-		return VarKindTime
-	case self.Tri:
-		return VarKindTri
-	case self.Triand:
-		return VarKindTriand
-	case self.Trior:
-		return VarKindTrior
-	case self.Trireg:
-		return VarKindTrireg
-	case self.Tri0:
-		return VarKindTri0
-	case self.Tri1:
-		return VarKindTri1
-	case self.Wand:
-		return VarKindWand
-	case self.Wire:
-		return VarKindWire
-	case self.Wor:
-		return VarKindWor
-	case self.Logic:
-		return VarKindLogic
+var stringToVarKind = map[string]VarKindCode{
+	"event":     VarKindEvent,
+	"integer":   VarKindInteger,
+	"parameter": VarKindParameter,
+	"real":      VarKindReal,
+	"reg":       VarKindReg,
+	"supply0":   VarKindSupply0,
+	"supply1":   VarKindSupply1,
+	"time":      VarKindTime,
+	"tri":       VarKindTri,
+	"triand":    VarKindTriand,
+	"trior":     VarKindTrior,
+	"trireg":    VarKindTrireg,
+	"tri0":      VarKindTri0,
+	"tri1":      VarKindTri1,
+	"wand":      VarKindWand,
+	"wire":      VarKindWire,
+	"wor":       VarKindWor,
+	// Extensions?
+	"logic":  VarKindLogic,
+	"string": VarKindString,
+}
+
+func (self VarT) GetVarKind() VarKindCode {
+	v, ok := stringToVarKind[self.VarType]
+	if !ok {
+		return VarKindUnknown
 	}
-	return VarKindUnknown
+	return v
 }
 
 type TimescaleT struct {
@@ -263,6 +315,7 @@ type SimulationCommandT struct {
 	SimulationTime SimulationTimeT `| @@`
 	ValueChange    ValueChangeT    `| @@`
 	Attrbegin      bool            `| @KwAttrbegin @AnyNonspace* @KwEndSpecial`
+	Attrend        bool            `| @KwAttrend @AnyNonspace* @KwEndSpecial`
 }
 
 type DumpallT struct {
@@ -284,9 +337,9 @@ type DumponT struct {
 }
 
 type DumpvarsT struct {
-	Kw          bool            `@KwDumpvars`
-	ValueChange []*ValueChangeT `@@*`
-	KwEnd       bool            `@KwEnd`
+	Kw          bool            `parser:"@KwDumpvars"`
+	ValueChange []*ValueChangeT `parser:"@@*"`
+	KwEnd       bool            `parser:"@KwEnd"`
 }
 
 type SimulationKeywordT struct {
