@@ -25,6 +25,13 @@ func TestParseFromTheWild(t *testing.T) {
 		`
          $enddefinitions $end
          $dumpvars 0V# $end`,
+
+		`
+        $enddefinitions $end
+        $dumpvars
+        x*@
+        $end
+        `,
 	}
 
 	for i, test := range tests {

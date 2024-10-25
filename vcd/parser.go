@@ -245,13 +245,15 @@ type DumponT struct {
 }
 
 type DumpvarsT struct {
+	Pos         lexer.Position
 	Kw          bool            `parser:"@KwDumpvars"`
 	ValueChange []*ValueChangeT `parser:"@@*"`
 	KwEnd       bool            `parser:"@KwEnd"`
 }
 
 type SimulationKeywordT struct {
-	Pos lexer.Position
+	Pos    lexer.Position
+	Tokens []lexer.Token
 
 	DumpOff  bool `parser:"@KwDumpoff"`
 	DumpOn   bool `parser:"| @KwDumpon"`
@@ -259,47 +261,54 @@ type SimulationKeywordT struct {
 }
 
 type SimulationTimeT struct {
-	Pos lexer.Position
+	Pos    lexer.Position
+	Tokens []lexer.Token
 
 	DecimalNumber string `parser:"@Timestamp"`
 }
 
 type ValueChangeT struct {
-	Pos lexer.Position
+	Pos    lexer.Position
+	Tokens []lexer.Token
 
 	ScalarValueChange *ScalarValueChangeT `parser:"@@"`
 	VectorValueChange *VectorValueChangeT `parser:"| @@"`
 }
 
 type ScalarValueChangeT struct {
-	Pos lexer.Position
+	Pos    lexer.Position
+	Tokens []lexer.Token
 
 	Value  ValueT `parser:"@@"`
 	IdCode string `parser:"@IdCode"`
 }
 
 type ValueT struct {
-	Pos lexer.Position
+	Pos    lexer.Position
+	Tokens []lexer.Token
 
 	Value string `parser:"@(\"0\" | \"1\" | \"x\" | \"X\"| \"z\" | \"Z\")"`
 }
 
 type VectorValueChangeT struct {
-	Pos lexer.Position
+	Pos    lexer.Position
+	Tokens []lexer.Token
 
 	VectorValueChange1 *VectorValueChange1T `parser:"@@"`
 	VectorValueChange3 *VectorValueChange3T `parser:"| @@"`
 }
 
 type VectorValueChange1T struct {
-	Pos lexer.Position
+	Pos    lexer.Position
+	Tokens []lexer.Token
 
 	BinaryNumber string `parser:"@Binstring"`
 	IdCode       string `parser:"@IdCode"`
 }
 
 type VectorValueChange3T struct {
-	Pos lexer.Position
+	Pos    lexer.Position
+	Tokens []lexer.Token
 
 	RealNumber     string `parser:"@RealString"`
 	IdentifierCode string `parser:"@IdCode"`

@@ -50,7 +50,7 @@ func GenKeywordTokens() []lexer.SimpleRule {
 		"dumpon",
 		"dumpoff",
 		"dumpvars",
-		"end",
+		//"end",
 	}
 
 	var ret []lexer.SimpleRule
@@ -183,7 +183,9 @@ func NewLexer() *lexer.StatefulDefinition {
 			{Name: "KwVar", Pattern: `\$var`, Action: lexer.Push("VarTokens")},
 			{Name: "KwAttrbegin", Pattern: `\$attrbegin`, Action: lexer.Push("AttrBeginTokens")},
 			{Name: "KwAttrend", Pattern: `\$attrend`, Action: lexer.Push("AttrEndTokens")},
+			// Longer keywords must be before shorter ones, else mixups will occur.
 			{Name: "KwEnddefinitions", Pattern: `\$enddefinitions`, Action: lexer.Push("AfterEnddefinitions")},
+			{Name: "KwEnd", Pattern: `\$end`, Action: nil},
 		}),
 		"DateTokens": anyWordsEndingWithKwEnd,
 		// Is this unnecessary?
@@ -194,6 +196,7 @@ func NewLexer() *lexer.StatefulDefinition {
 		"VarTokens":       anyWordsEndingWithKwEndWithWs,
 
 		"AfterEnddefinitions": SimpleStringlessRules([]lexer.Rule{
+			{Name: "KwEnd", Pattern: `\$end`, Action: nil},
 			{Name: "KwComment", Pattern: `\$comment`, Action: lexer.Push("CommentTokens")},
 		}),
 	}
