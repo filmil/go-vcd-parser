@@ -259,6 +259,11 @@ type ValueChangeT struct {
 type ScalarValueChangeT struct {
 	Value  ValueT `parser:"@@" json:",omitempty"`
 	IdCode string `parser:"@IdCode" json:",omitempty"`
+	// Garble is used to work around the tokenizer being unable to
+	// make a distinction between [`x*@`] and [`x`, `*@`]. The
+	// correct way to handle this is to write a custom lexer, but
+	// since this seems to be the only place where it matters, this is
+	// somewhat easier and kind of achieves the same goal.
 	Garble string `parser:"| @IdCode" json:",omitempty"`
 }
 
