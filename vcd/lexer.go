@@ -78,16 +78,16 @@ var stringlessRules = []lexer.SimpleRule{
 		Pattern: RealStringPattern,
 	},
 	{
+		Name:    "IdCode",
+		Pattern: AnyWordPattern,
+	},
+	{
 		Name:    "Int",
 		Pattern: IntPattern,
 	},
 	{
 		Name:    "Float",
 		Pattern: FloatPattern,
-	},
-	{
-		Name:    "IdCode",
-		Pattern: AnyWordPattern,
 	},
 	{
 		Name:    "ws",
