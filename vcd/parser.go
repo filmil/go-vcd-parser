@@ -289,12 +289,18 @@ type ValueT struct {
 
 type VectorValueChangeT struct {
 	VectorValueChange1 *VectorValueChange1T `parser:"@@" json:",omitempty"`
+	VectorValueChange2 *VectorValueChange2T `parser:"| @@" json:",omitempty"`
 	VectorValueChange3 *VectorValueChange3T `parser:"| @@" json:",omitempty"`
 }
 
 type VectorValueChange1T struct {
 	BinaryNumber string `parser:"@Binstring" json:",omitempty"`
 	IdCode       string `parser:"@IdCode" json:",omitempty"`
+}
+
+type VectorValueChange2T struct {
+	State  string `parser:" @StateString  " json:",omitempty"`
+	IdCode string `parser:" @IdCode  " json:",omitempty"`
 }
 
 type VectorValueChange3T struct {

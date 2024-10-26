@@ -202,3 +202,87 @@ func TestTimescale(t *testing.T) {
 		})
 	}
 }
+
+func Ptr[T any](v T) *T {
+	return &v
+}
+
+func TestResult(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		input    string
+		expected File
+	}{
+		{input: `
+            $enddefinitions $end
+            srx_get_start_bit ^
+        `,
+			expected: File{
+				DeclarationCommand: []*DeclarationCommandT{
+					{
+						EndDefinitions: Ptr(true),
+					},
+				},
+				SimulationCommand: []*SimulationCommandT{
+					{
+						ValueChange: &ValueChangeT{
+							VectorValueChange: &VectorValueChangeT{
+								VectorValueChange2: &VectorValueChange2T{
+									State:  "srx_get_start_bit",
+									IdCode: "^",
+								},
+							},
+						},
+					}, //
+				},
+			},
+		},
+	}
+	parser := NewParser[File]()
+	for i, test := range tests {
+		test := test
+		t.Run(test.input, func(t *testing.T) {
+			r := strings.NewReader(test.input)
+			actual, err := parser.Parse(fmt.Sprintf("(rule %v)", i), r)
+			if err != nil {
+				t.Fatalf("parse error: %+v: %v", test.input, err)
+			}
+			if !reflect.DeepEqual(&test.expected, actual) {
+				t.Errorf("\nwant: %v\ngot:  %v", spew.Sdump(&test.expected), spew.Sdump(actual))
+			}
+		})
+	}
+}
+
+//type VarTWrap struct {
+//V *VarT `parser:"@@"`
+//}
+
+//func TestVar(t *testing.T) {
+//t.Parallel()
+//tests := []struct {
+//input   string
+//checkFn func(t *testing.T, v *VarT)
+//}{
+//{
+//input: `$var string 0 & uart_rx_state $end`,
+//checkFn: func(t *testing.T, v *VarT) {
+//if v.Id.Name != "uart_rx_state" {
+//t.Errorf("Name: %v", v.Id.Name)
+//}
+//},
+//},
+//}
+//parser := NewParser[VarTWrap]()
+//for i, test := range tests {
+//test := test
+//t.Run(test.input, func(t *testing.T) {
+//r := strings.NewReader(test.input)
+//actual, err := parser.Parse(fmt.Sprintf("(rule %v)", i), r)
+//if err != nil {
+//t.Fatalf("parse error: %+v: %v", test.input, err)
+//}
+//test.checkFn(t, actual.V)
+//})
+//}
+//}

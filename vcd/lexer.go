@@ -18,6 +18,7 @@ const (
 	TimestampPattern  = `#\d+`
 	WhitespacePattern = `\s+`
 	IdentifierPattern = `[a-zA-Z_][a-zA-Z0-9_]*`
+	StatePattern      = `s` + IdentifierPattern
 )
 
 // IntoRule converts a SimpleRule into a (complex) Rule.
@@ -76,6 +77,10 @@ var stringlessRules = []lexer.SimpleRule{
 	{
 		Name:    "RealString",
 		Pattern: RealStringPattern,
+	},
+	{
+		Name:    "StateString",
+		Pattern: StatePattern,
 	},
 	{
 		Name:    "IdCode",
