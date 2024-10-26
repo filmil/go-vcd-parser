@@ -42,7 +42,7 @@ func TestParseFromTheWild(t *testing.T) {
 	for i, test := range tests {
 		test := test
 		t.Run(fmt.Sprintf("rule %v", i), func(t *testing.T) {
-			parser := NewParser[VCDFile]()
+			parser := NewParser[File]()
 			r := strings.NewReader(test)
 			if _, err := parser.Parse(fmt.Sprintf("(rule %v)", i), r); err != nil {
 				t.Errorf("parse error: `%v`: %+v", test, err)
