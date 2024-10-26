@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -10,36 +11,49 @@ import (
 	"github.com/filmil/go-vcd-parser/vcd"
 )
 
-func run(r io.Reader, filename string) error {
+func run(r io.Reader, filename string) (*vcd.File, error) {
 
 	parser := vcd.NewParser[vcd.File]()
 	ast, err := parser.Parse(filename, r)
 	if err != nil {
-		return fmt.Errorf("parse error: %w", err)
+		return nil, fmt.Errorf("parse error: %w", err)
 	}
 
-	fmt.Printf("ast: %+v", ast)
-	return nil
+	return ast, nil
 }
 
 func main() {
-	var filename string
-	flag.StringVar(&filename, "in", "", "Input filename, VCD file")
+	var inFile, outFile string
+	flag.StringVar(&inFile, "in", "", "Input filename, VCD file")
+	flag.StringVar(&outFile, "out", "", "Output filename, parsed vcd.File")
 	flag.Parse()
 
-	if filename == "" {
+	if inFile == "" {
 		log.Printf("flag --in=... is required")
 		os.Exit(1)
 	}
 
-	file, err := os.Open(filename)
+	file, err := os.Open(inFile)
 	if err != nil {
-		log.Printf("error opening: %v: %v", filename, err)
+		log.Printf("error opening: %v: %v", inFile, err)
 	}
 
-	if err := run(file, filename); err != nil {
-		log.Printf("error: %v", err)
+	ast, err := run(file, inFile)
+	if err != nil {
+		log.Printf("error: %v: %v", inFile, err)
 		os.Exit(1)
 	}
 
+	of, err := os.Create(outFile)
+	if err != nil {
+		log.Printf("error: %v: %v", outFile, err)
+	}
+
+	e := json.NewEncoder(of)
+	defer of.Close()
+
+	if err := e.Encode(ast); err != nil {
+		log.Printf("cannot encode: %v: %v", outFile, err)
+		os.Exit(1)
+	}
 }
