@@ -80,7 +80,7 @@ $var reg 32 (k accumulator[31:0] $end
 	for i, test := range tests {
 		test := test
 		t.Run(fmt.Sprintf("rule %v", i), func(t *testing.T) {
-			parser := NewParser[VCDFile]()
+			parser := NewParser[File]()
 			r := strings.NewReader(test)
 			if _, err := parser.Parse(fmt.Sprintf("(rule %v)", i), r); err != nil {
 				t.Errorf("parse error:\n\t\t`%v`\n\t\t\t%v", test, err)
@@ -100,7 +100,7 @@ func TestVarParse(t *testing.T) {
 	}{
 		{input: `$var logic 8 :! fifo_memory[48][7:0] $end`},
 	}
-	parser := NewParser[VCDFile]()
+	parser := NewParser[File]()
 	for i, test := range tests {
 		test := test
 		t.Run(test.input, func(t *testing.T) {

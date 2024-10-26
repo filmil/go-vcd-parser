@@ -12,7 +12,7 @@ import (
 
 func run(r io.Reader, filename string) error {
 
-	parser := vcd.NewParser()
+	parser := vcd.NewParser[vcd.File]()
 	ast, err := parser.Parse(filename, r)
 	if err != nil {
 		return fmt.Errorf("parse error: %w", err)

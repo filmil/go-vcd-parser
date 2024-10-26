@@ -5,11 +5,11 @@ import (
 	"github.com/alecthomas/participle/v2/lexer"
 )
 
-// VCDFile represents a parsed Value Change Dump.
+// File represents a parsed Value Change Dump.
 // The inline definition here, is based on the IEEE Std 1364-2001 Version C,
 // page 331. Plus some extensions that don't seem described there, but
 // happen in realistic VCD files.
-type VCDFile struct {
+type File struct {
 	Pos lexer.Position
 
 	DeclarationCommand []*DeclarationCommandT `parser:"@@*"`
