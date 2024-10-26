@@ -24,12 +24,16 @@ func run(r io.Reader, filename string) (*vcd.File, error) {
 
 func main() {
 	var inFile, outFile string
-	flag.StringVar(&inFile, "in", "", "Input filename, VCD file")
-	flag.StringVar(&outFile, "out", "", "Output filename, parsed vcd.File")
+	flag.StringVar(&inFile, "in", "", "Input filename, VCD file (required)")
+	flag.StringVar(&outFile, "out", "", "Output filename, parsed vcd.File (required)")
 	flag.Parse()
 
 	if inFile == "" {
 		log.Printf("flag --in=... is required")
+		os.Exit(1)
+	}
+	if outFile == "" {
+		log.Printf("flag --out=... is required")
 		os.Exit(1)
 	}
 

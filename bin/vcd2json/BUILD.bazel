@@ -1,15 +1,15 @@
 load("@rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
-    name = "bin_lib",
+    name = "vcd2json_lib",
     srcs = ["main.go"],
-    importpath = "github.com/filmil/go-vcd-parser/bin",
+    importpath = "github.com/filmil/go-vcd-parser/bin/vcd2json",
     visibility = ["//visibility:private"],
     deps = ["//vcd"],
 )
 
 go_binary(
-    name = "bin",
-    embed = [":bin_lib"],
+    name = "vcd2json",
+    embed = [":vcd2json_lib"],
     visibility = ["//visibility:public"],
 )
