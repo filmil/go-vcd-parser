@@ -2,8 +2,11 @@ package vcd
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 func TestBasicParse(t *testing.T) {
@@ -135,6 +138,66 @@ func TestBitParse(t *testing.T) {
 			_, err := parser.Parse(fmt.Sprintf("(rule %v)", i), r)
 			if err != nil {
 				t.Errorf("parse error: input:`%+v`: %+v", test.input, err)
+			}
+		})
+	}
+}
+
+func TestScope(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		input    string
+		expected ScopeT
+	}{
+		{"$scope module top $end", ScopeT{
+			Scope:     true,
+			ScopeKind: ScopeKindT{Module: true},
+			Id:        "top",
+			KwEnd:     true,
+		}},
+	}
+	parser := NewParser[ScopeT]()
+	for i, test := range tests {
+		test := test
+		t.Run(test.input, func(t *testing.T) {
+			r := strings.NewReader(test.input)
+			actual, err := parser.Parse(fmt.Sprintf("(rule %v)", i), r)
+			if err != nil {
+				t.Fatalf("parse error: %+v: %v", test.input, err)
+			}
+			if !reflect.DeepEqual(&test.expected, actual) {
+				t.Errorf("\nwant: %+v\ngot:  %+v", &test.expected, actual)
+			}
+		})
+	}
+}
+
+func TestTimescale(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		input    string
+		expected TimescaleT
+	}{
+		{"$timescale 10ns $end", TimescaleT{
+			Kw:     true,
+			Number: 10,
+			Unit: &TimeUnit{
+				NanoSecond: true,
+			},
+			Kw2: true,
+		}},
+	}
+	parser := NewParser[TimescaleT]()
+	for i, test := range tests {
+		test := test
+		t.Run(test.input, func(t *testing.T) {
+			r := strings.NewReader(test.input)
+			actual, err := parser.Parse(fmt.Sprintf("(rule %v)", i), r)
+			if err != nil {
+				t.Fatalf("parse error: %+v: %v", test.input, err)
+			}
+			if !reflect.DeepEqual(&test.expected, actual) {
+				t.Errorf("\nwant: %+v\ngot:  %+v", spew.Sdump(&test.expected), spew.Sdump(actual))
 			}
 		})
 	}

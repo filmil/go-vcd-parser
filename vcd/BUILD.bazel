@@ -10,6 +10,7 @@ go_library(
     importpath = "github.com/filmil/go-vcd-parser/vcd",
     visibility = ["//visibility:public"],
     deps = [
+        "@com_github_alecthomas_participle//:participle",
         "@com_github_alecthomas_participle_v2//:participle",
         "@com_github_alecthomas_participle_v2//lexer",
         "@org_golang_x_text//cases",
@@ -19,28 +20,29 @@ go_library(
 
 go_test(
     name = "vcd_test",
+    size = "small",
     srcs = [
         "lexer_test.go",
         "parser_test.go",
     ],
     embed = [":vcd"],
-    size = "small",
+    deps = ["@com_github_davecgh_go_spew//spew"],
 )
 
 go_test(
     name = "parser_wild_test",
+    size = "small",
     srcs = ["parser_wild_test.go"],
     embed = [":vcd"],
-    size = "small",
 )
 
 go_test(
     name = "vcd_files_test",
+    size = "medium",
     srcs = ["vcd_files_test.go"],
     data = [
         "//vcd/samples",
     ],
     embed = [":vcd"],
     rundir = "vcd",
-    size = "medium",
 )

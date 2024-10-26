@@ -28,27 +28,27 @@ type DeclarationCommandT struct {
 }
 
 type VarTypeT struct {
-	Event     bool `parser:"\"event\"" json:",omitempty"`
-	Integer   bool `parser:"| \"integer\"" json:",omitempty"`
-	Parameter bool `parser:"| \"parameter\"" json:",omitempty"`
-	Real      bool `parser:"| \"real\"" json:",omitempty"`
-	Reg       bool `parser:"| \"reg\"" json:",omitempty"`
-	Supply0   bool `parser:"| \"supply0\"" json:",omitempty"`
-	Supply1   bool `parser:"| \"supply1\"" json:",omitempty"`
-	Time      bool `parser:"| \"time\"" json:",omitempty"`
-	Tri       bool `parser:"| \"tri\"" json:",omitempty"`
-	Triand    bool `parser:"| \"triand\"" json:",omitempty"`
-	Trior     bool `parser:"| \"trior\"" json:",omitempty"`
-	Trireg    bool `parser:"| \"trireg\"" json:",omitempty"`
-	Tri0      bool `parser:"| \"tri0\"" json:",omitempty"`
-	Tri1      bool `parser:"| \"tri1\"" json:",omitempty"`
-	Wand      bool `parser:"| \"wand\"" json:",omitempty"`
-	Wire      bool `parser:"| \"wire\"" json:",omitempty"`
-	Wor       bool `parser:"| \"wor\"" json:",omitempty"`
+	Event     bool `parser:" @\"event\"" json:",omitempty"`
+	Integer   bool `parser:"|  @\"integer\"" json:",omitempty"`
+	Parameter bool `parser:"|  @\"parameter\"" json:",omitempty"`
+	Real      bool `parser:"| @\"real\"" json:",omitempty"`
+	Reg       bool `parser:"| @\"reg\"" json:",omitempty"`
+	Supply0   bool `parser:"| @\"supply0\"" json:",omitempty"`
+	Supply1   bool `parser:"| @\"supply1\"" json:",omitempty"`
+	Time      bool `parser:"| @\"time\"" json:",omitempty"`
+	Tri       bool `parser:"| @\"tri\"" json:",omitempty"`
+	Triand    bool `parser:"| @\"triand\"" json:",omitempty"`
+	Trior     bool `parser:"| @\"trior\"" json:",omitempty"`
+	Trireg    bool `parser:"| @\"trireg\"" json:",omitempty"`
+	Tri0      bool `parser:"| @\"tri0\"" json:",omitempty"`
+	Tri1      bool `parser:"| @\"tri1\"" json:",omitempty"`
+	Wand      bool `parser:"| @\"wand\"" json:",omitempty"`
+	Wire      bool `parser:"| @\"wire\"" json:",omitempty"`
+	Wor       bool `parser:"| @\"wor\"" json:",omitempty"`
 
 	// Extensions?
-	Logic  bool `parser:"| \"logic\"" json:",omitempty"`
-	String bool `parser:"| \"string\"" json:",omitempty"`
+	Logic  bool `parser:"| @\"logic\"" json:",omitempty"`
+	String bool `parser:"| @\"string\"" json:",omitempty"`
 }
 
 // VarKindCode is the type code for a variable.
@@ -128,12 +128,12 @@ func (self TimescaleT) AsNanoseconds() float64 {
 }
 
 type TimeUnit struct {
-	Second      bool `parser:"\"s\"" json:",omitempty"`
-	MilliSecond bool `parser:"| \"ms\"" json:",omitempty"`
-	MicroSecond bool `parser:"| \"us\"" json:",omitempty"`
-	NanoSecond  bool `parser:"| \"ns\"" json:",omitempty"`
-	PicoSecond  bool `parser:"| \"ps\"" json:",omitempty"`
-	FemtoSecond bool `parser:"| \"fs\"" json:",omitempty"`
+	Second      bool `parser:" @\"s\"" json:",omitempty"`
+	MilliSecond bool `parser:"|  @\"ms\"" json:",omitempty"`
+	MicroSecond bool `parser:"|  @\"us\"" json:",omitempty"`
+	NanoSecond  bool `parser:"|  @\"ns\"" json:",omitempty"`
+	PicoSecond  bool `parser:"|  @\"ps\"" json:",omitempty"`
+	FemtoSecond bool `parser:"|  @\"fs\"" json:",omitempty"`
 }
 
 func (self TimeUnit) Multiplier() float64 {
@@ -157,7 +157,8 @@ func (self TimeUnit) Multiplier() float64 {
 type ScopeT struct {
 	Scope     bool       `parser:"@KwScope" json:",omitempty"`
 	ScopeKind ScopeKindT `parser:"@@" json:",omitempty"`
-	Id        string     `parser:"@Ident @KwEnd" json:",omitempty"`
+	Id        string     `parser:"@Ident" json:",omitempty"`
+	KwEnd     bool       `parser:"@KwEnd" json:"-"`
 }
 
 type ScopeKindCode int
@@ -174,32 +175,32 @@ const (
 )
 
 type ScopeKindT struct {
-	Begin    *bool `parser:"\"begin\"" json:",omitempty"`
-	Fork     *bool `parser:"| \"fork\"" json:",omitempty"`
-	Function *bool `parser:"| \"function\"" json:",omitempty"`
-	Module   *bool `parser:"| \"module\"" json:",omitempty"`
-	Task     *bool `parser:"| \"task\"" json:",omitempty"`
+	Begin    bool `parser:"@\"begin\"" json:",omitempty"`
+	Fork     bool `parser:"| \"fork\"" json:",omitempty"`
+	Function bool `parser:"| \"function\"" json:",omitempty"`
+	Module   bool `parser:"| @\"module\"" json:",omitempty"`
+	Task     bool `parser:"| \"task\"" json:",omitempty"`
 
 	// Extensions?
-	VHDLArchitecture *bool `parser:"| \"vhdl_architecture\"" json:",omitempty"`
-	VHDLRecord       *bool `parser:"| \"vhdl_record\"" json:",omitempty"`
+	VHDLArchitecture bool `parser:"| \"vhdl_architecture\"" json:",omitempty"`
+	VHDLRecord       bool `parser:"| \"vhdl_record\"" json:",omitempty"`
 }
 
 func (self ScopeKindT) Kind() ScopeKindCode {
 	switch {
-	case *self.Begin:
+	case self.Begin:
 		return ScopeKindBegin
-	case *self.Fork:
+	case self.Fork:
 		return ScopeKindFork
-	case *self.Function:
+	case self.Function:
 		return ScopeKindFunction
-	case *self.Module:
+	case self.Module:
 		return ScopeKindModule
-	case *self.Task:
+	case self.Task:
 		return ScopeKindTask
-	case *self.VHDLArchitecture:
+	case self.VHDLArchitecture:
 		return ScopeKindVHDLArchitecture
-	case *self.VHDLRecord:
+	case self.VHDLRecord:
 		return ScopeKindVHDLRecord
 	}
 	return ScopeKindUnknown
