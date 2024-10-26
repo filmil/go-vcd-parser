@@ -10,51 +10,45 @@ import (
 // page 331. Plus some extensions that don't seem described there, but
 // happen in realistic VCD files.
 type File struct {
-	Pos lexer.Position
-
-	DeclarationCommand []*DeclarationCommandT `parser:"@@*"`
-	SimulationCommand  []*SimulationCommandT  `parser:"@@*"`
+	DeclarationCommand []*DeclarationCommandT `parser:"@@*" json:",omitempty"`
+	SimulationCommand  []*SimulationCommandT  `parser:"@@*" json:",omitempty"`
 }
 
 type DeclarationCommandT struct {
-	Pos lexer.Position
-
-	CommentText    string     `parser:"@KwComment @AnyNonspace* @KwEndSpecial"`
-	Var            *VarT      `parser:"| @KwVar (@Ws? @AnyNonspace)* @Ws? @KwEndSpecial"`
-	Date           string     `parser:"| @KwDate @AnyNonspace* @KwEndSpecial"`
-	Version        string     `parser:"| @KwVersion @AnyNonspace* @KwEndSpecial"`
-	Attrbegin      bool       `parser:"| @KwAttrbegin @AnyNonspace* @KwEndSpecial"`
-	Attrend        bool       `parser:"| @KwAttrend @AnyNonspace* @KwEndSpecial"`
-	EndDefinitions bool       `parser:"| @KwEnddefinitions (@KwEnd|@KwEndSpecial)"`
-	Scope          ScopeT     `parser:"| @@"`
-	Timescale      TimescaleT `parser:"| @@"`
-	Upscope        bool       `parser:"| @KwUpscope @KwEnd"`
+	CommentText    *string     `parser:"@KwComment @AnyNonspace* @KwEndSpecial" json:",omitempty"`
+	Var            *VarT       `parser:"| @KwVar (@Ws? @AnyNonspace)* @Ws? @KwEndSpecial" json:",omitempty"`
+	Date           *string     `parser:"| @KwDate @AnyNonspace* @KwEndSpecial" json:",omitempty"`
+	Version        *string     `parser:"| @KwVersion @AnyNonspace* @KwEndSpecial" json:",omitempty"`
+	Attrbegin      *bool       `parser:"| @KwAttrbegin @AnyNonspace* @KwEndSpecial" json:",omitempty"`
+	Attrend        *bool       `parser:"| @KwAttrend @AnyNonspace* @KwEndSpecial" json:",omitempty"`
+	EndDefinitions *bool       `parser:"| @KwEnddefinitions (@KwEnd|@KwEndSpecial)" json:",omitempty"`
+	Scope          *ScopeT     `parser:"| @@" json:",omitempty"`
+	Timescale      *TimescaleT `parser:"| @@" json:",omitempty"`
+	Upscope        *bool       `parser:"| @KwUpscope @KwEnd" json:",omitempty"`
 }
 
 type VarTypeT struct {
-	Pos lexer.Position
-
-	Event     bool `parser:"\"event\""`
-	Integer   bool `parser:"| \"integer\""`
-	Parameter bool `parser:"| \"parameter\""`
-	Real      bool `parser:"| \"real\""`
-	Reg       bool `parser:"| \"reg\""`
-	Supply0   bool `parser:"| \"supply0\""`
-	Supply1   bool `parser:"| \"supply1\""`
-	Time      bool `parser:"| \"time\""`
-	Tri       bool `parser:"| \"tri\""`
-	Triand    bool `parser:"| \"triand\""`
-	Trior     bool `parser:"| \"trior\""`
-	Trireg    bool `parser:"| \"trireg\""`
-	Tri0      bool `parser:"| \"tri0\""`
-	Tri1      bool `parser:"| \"tri1\""`
-	Wand      bool `parser:"| \"wand\""`
-	Wire      bool `parser:"| \"wire\""`
-	Wor       bool `parser:"| \"wor\""`
+	Event     bool `parser:"\"event\"" json:",omitempty"`
+	Integer   bool `parser:"| \"integer\"" json:",omitempty"`
+	Parameter bool `parser:"| \"parameter\"" json:",omitempty"`
+	Real      bool `parser:"| \"real\"" json:",omitempty"`
+	Reg       bool `parser:"| \"reg\"" json:",omitempty"`
+	Supply0   bool `parser:"| \"supply0\"" json:",omitempty"`
+	Supply1   bool `parser:"| \"supply1\"" json:",omitempty"`
+	Time      bool `parser:"| \"time\"" json:",omitempty"`
+	Tri       bool `parser:"| \"tri\"" json:",omitempty"`
+	Triand    bool `parser:"| \"triand\"" json:",omitempty"`
+	Trior     bool `parser:"| \"trior\"" json:",omitempty"`
+	Trireg    bool `parser:"| \"trireg\"" json:",omitempty"`
+	Tri0      bool `parser:"| \"tri0\"" json:",omitempty"`
+	Tri1      bool `parser:"| \"tri1\"" json:",omitempty"`
+	Wand      bool `parser:"| \"wand\"" json:",omitempty"`
+	Wire      bool `parser:"| \"wire\"" json:",omitempty"`
+	Wor       bool `parser:"| \"wor\"" json:",omitempty"`
 
 	// Extensions?
-	Logic  bool `parser:"| \"logic\""`
-	String bool `parser:"| \"string\""`
+	Logic  bool `parser:"| \"logic\"" json:",omitempty"`
+	String bool `parser:"| \"string\"" json:",omitempty"`
 }
 
 // VarKindCode is the type code for a variable.
@@ -117,12 +111,10 @@ func (self VarT) GetVarKind() VarKindCode {
 }
 
 type TimescaleT struct {
-	Pos lexer.Position
-
-	Kw     bool     `parser:"@KwTimescale"`
-	Number int64    `parser:"@Int"`
-	Unit   TimeUnit `parser:"@@"`
-	Kw2    bool     `parser:"@KwEnd"`
+	Kw     bool      `parser:"@KwTimescale" json:"-"`
+	Number int64     `parser:"@Int" json:",omitempty"`
+	Unit   *TimeUnit `parser:"@@" json:",omitempty"`
+	Kw2    bool      `parser:"@KwEnd" json:"-"`
 }
 
 // AsSeconds returns the number of seconds (possibly fractional, possibly very small)
@@ -136,14 +128,12 @@ func (self TimescaleT) AsNanoseconds() float64 {
 }
 
 type TimeUnit struct {
-	Pos lexer.Position
-
-	Second      bool `parser:"\"s\""`
-	MilliSecond bool `parser:"| \"ms\""`
-	MicroSecond bool `parser:"| \"us\""`
-	NanoSecond  bool `parser:"| \"ns\""`
-	PicoSecond  bool `parser:"| \"ps\""`
-	FemtoSecond bool `parser:"| \"fs\""`
+	Second      bool `parser:"\"s\"" json:",omitempty"`
+	MilliSecond bool `parser:"| \"ms\"" json:",omitempty"`
+	MicroSecond bool `parser:"| \"us\"" json:",omitempty"`
+	NanoSecond  bool `parser:"| \"ns\"" json:",omitempty"`
+	PicoSecond  bool `parser:"| \"ps\"" json:",omitempty"`
+	FemtoSecond bool `parser:"| \"fs\"" json:",omitempty"`
 }
 
 func (self TimeUnit) Multiplier() float64 {
@@ -165,11 +155,9 @@ func (self TimeUnit) Multiplier() float64 {
 }
 
 type ScopeT struct {
-	Pos lexer.Position
-
-	Scope     bool       `parser:"@KwScope"`
-	ScopeKind ScopeKindT `parser:"@@"`
-	Id        string     `parser:"@Ident @KwEnd"`
+	Scope     bool       `parser:"@KwScope" json:",omitempty"`
+	ScopeKind ScopeKindT `parser:"@@" json:",omitempty"`
+	Id        string     `parser:"@Ident @KwEnd" json:",omitempty"`
 }
 
 type ScopeKindCode int
@@ -186,115 +174,91 @@ const (
 )
 
 type ScopeKindT struct {
-	Pos lexer.Position
-
-	Begin    bool `parser:"\"begin\""`
-	Fork     bool `parser:"| \"fork\""`
-	Function bool `parser:"| \"function\""`
-	Module   bool `parser:"| \"module\""`
-	Task     bool `parser:"| \"task\""`
+	Begin    *bool `parser:"\"begin\"" json:",omitempty"`
+	Fork     *bool `parser:"| \"fork\"" json:",omitempty"`
+	Function *bool `parser:"| \"function\"" json:",omitempty"`
+	Module   *bool `parser:"| \"module\"" json:",omitempty"`
+	Task     *bool `parser:"| \"task\"" json:",omitempty"`
 
 	// Extensions?
-	VHDLArchitecture bool `parser:"| \"vhdl_architecture\""`
-	VHDLRecord       bool `parser:"| \"vhdl_record\""`
+	VHDLArchitecture *bool `parser:"| \"vhdl_architecture\"" json:",omitempty"`
+	VHDLRecord       *bool `parser:"| \"vhdl_record\"" json:",omitempty"`
 }
 
 func (self ScopeKindT) Kind() ScopeKindCode {
 	switch {
-	case self.Begin:
+	case *self.Begin:
 		return ScopeKindBegin
-	case self.Fork:
+	case *self.Fork:
 		return ScopeKindFork
-	case self.Function:
+	case *self.Function:
 		return ScopeKindFunction
-	case self.Module:
+	case *self.Module:
 		return ScopeKindModule
-	case self.Task:
+	case *self.Task:
 		return ScopeKindTask
-	case self.VHDLArchitecture:
+	case *self.VHDLArchitecture:
 		return ScopeKindVHDLArchitecture
-	case self.VHDLRecord:
+	case *self.VHDLRecord:
 		return ScopeKindVHDLRecord
 	}
 	return ScopeKindUnknown
 }
 
 type SimulationCommandT struct {
-	Pos lexer.Position
-
-	Dumpall        DumpallT        `parser:"@@"`
-	Dumpoff        DumpoffT        `parser:"| @@"`
-	Dumpon         DumponT         `parser:"| @@"`
-	Dumpvars       DumpvarsT       `parser:"| @@"`
-	SimulationTime SimulationTimeT `parser:"| @@"`
-	ValueChange    ValueChangeT    `parser:"| @@"`
-	Attrbegin      bool            `parser:"| @KwAttrbegin @AnyNonspace* @KwEndSpecial"`
-	Attrend        bool            `parser:"| @KwAttrend @AnyNonspace* @KwEndSpecial"`
+	Dumpall        *DumpallT        `parser:"@@" json:",omitempty"`
+	Dumpoff        *DumpoffT        `parser:"| @@" json:",omitempty"`
+	Dumpon         *DumponT         `parser:"| @@" json:",omitempty"`
+	Dumpvars       *DumpvarsT       `parser:"| @@" json:",omitempty"`
+	SimulationTime *SimulationTimeT `parser:"| @@" json:",omitempty"`
+	ValueChange    *ValueChangeT    `parser:"| @@" json:",omitempty"`
+	Attrbegin      *bool            `parser:"| @KwAttrbegin @AnyNonspace* @KwEndSpecial" json:",omitempty"`
+	Attrend        *bool            `parser:"| @KwAttrend @AnyNonspace* @KwEndSpecial" json:",omitempty"`
 }
 
 type DumpallT struct {
-	Pos lexer.Position
-
-	Kw          bool            `parser:"@KwDumpall"`
-	ValueChange []*ValueChangeT `parser:"@@*"`
-	KwEnd       bool            `parser:"@KwEnd"`
+	Kw          bool            `parser:"@KwDumpall" json:",omitempty"`
+	ValueChange []*ValueChangeT `parser:"@@*" json:",omitempty"`
+	KwEnd       bool            `parser:"@KwEnd" json:",omitempty"`
 }
 
 type DumpoffT struct {
-	Pos lexer.Position
-
-	Kw          bool            `parser:"@KwDumpoff"`
-	ValueChange []*ValueChangeT `parser:"@@*"`
-	KwEnd       bool            `parser:"@KwEnd"`
+	Kw          bool            `parser:"@KwDumpoff" json:",omitempty"`
+	ValueChange []*ValueChangeT `parser:"@@*" json:",omitempty"`
+	KwEnd       bool            `parser:"@KwEnd" json:",omitempty"`
 }
 
 type DumponT struct {
-	Pos lexer.Position
-
-	Kw          bool            `parser:"@KwDumpon"`
-	ValueChange []*ValueChangeT `parser:"@@*"`
-	KwEnd       bool            `parser:"@KwEnd"`
+	Kw          bool            `parser:"@KwDumpon" json:",omitempty"`
+	ValueChange []*ValueChangeT `parser:"@@*" json:",omitempty"`
+	KwEnd       bool            `parser:"@KwEnd" json:",omitempty"`
 }
 
 type DumpvarsT struct {
-	Pos lexer.Position
-
-	Kw          bool            `parser:"@KwDumpvars"`
-	ValueChange []*ValueChangeT `parser:"@@*"`
-	KwEnd       bool            `parser:"@KwEnd"`
+	Kw          bool            `parser:"@KwDumpvars" json:",omitempty"`
+	ValueChange []*ValueChangeT `parser:"@@*" json:",omitempty"`
+	KwEnd       bool            `parser:"@KwEnd" json:",omitempty"`
 }
 
 type SimulationKeywordT struct {
-	Pos    lexer.Position
-	Tokens []lexer.Token
-
-	DumpOff  bool `parser:"@KwDumpoff"`
-	DumpOn   bool `parser:"| @KwDumpon"`
-	DumpVars bool `parser:"| @KwDumpvars"`
+	DumpOff  bool `parser:"@KwDumpoff" json:",omitempty"`
+	DumpOn   bool `parser:"| @KwDumpon" json:",omitempty"`
+	DumpVars bool `parser:"| @KwDumpvars" json:",omitempty"`
 }
 
 type SimulationTimeT struct {
-	Pos    lexer.Position
-	Tokens []lexer.Token
-
-	DecimalNumber string `parser:"@Timestamp"`
+	DecimalNumber string `parser:"@Timestamp" json:",omitempty"`
 }
 
 type ValueChangeT struct {
-	Pos    lexer.Position
-	Tokens []lexer.Token
-
-	ScalarValueChange *ScalarValueChangeT `parser:"@@"`
-	VectorValueChange *VectorValueChangeT `parser:"| @@"`
+	ScalarValueChange *ScalarValueChangeT `parser:"@@" json:",omitempty"`
+	VectorValueChange *VectorValueChangeT `parser:"| @@" json:",omitempty"`
 }
 
 type ScalarValueChangeT struct {
-	Pos    lexer.Position
-	Tokens []lexer.Token
-
-	Value  ValueT `parser:"@@"`
-	IdCode string `parser:"@IdCode"`
-	Garble string `parser:"| @IdCode"`
+	Value  ValueT `parser:"@@" json:",omitempty"`
+	IdCode string `parser:"@IdCode" json:",omitempty"`
+	Garble string `parser:"| @IdCode" json:",omitempty"`
 }
 
 func (self ScalarValueChangeT) GetIdCode() string {
@@ -312,34 +276,22 @@ func (self ScalarValueChangeT) GetValue() string {
 }
 
 type ValueT struct {
-	Pos    lexer.Position
-	Tokens []lexer.Token
-
-	Value string `parser:"@(\"0\" | \"1\" | \"x\" | \"X\"| \"z\" | \"Z\")"`
+	Value string `parser:"@(\"0\" | \"1\" | \"x\" | \"X\"| \"z\" | \"Z\")" json:",omitempty"`
 }
 
 type VectorValueChangeT struct {
-	Pos    lexer.Position
-	Tokens []lexer.Token
-
-	VectorValueChange1 *VectorValueChange1T `parser:"@@"`
-	VectorValueChange3 *VectorValueChange3T `parser:"| @@"`
+	VectorValueChange1 *VectorValueChange1T `parser:"@@" json:",omitempty"`
+	VectorValueChange3 *VectorValueChange3T `parser:"| @@" json:",omitempty"`
 }
 
 type VectorValueChange1T struct {
-	Pos    lexer.Position
-	Tokens []lexer.Token
-
-	BinaryNumber string `parser:"@Binstring"`
-	IdCode       string `parser:"@IdCode"`
+	BinaryNumber string `parser:"@Binstring" json:",omitempty"`
+	IdCode       string `parser:"@IdCode" json:",omitempty"`
 }
 
 type VectorValueChange3T struct {
-	Pos    lexer.Position
-	Tokens []lexer.Token
-
-	RealNumber     string `parser:"@RealString"`
-	IdentifierCode string `parser:"@IdCode"`
+	RealNumber     string `parser:"@RealString" json:",omitempty"`
+	IdentifierCode string `parser:"@IdCode" json:",omitempty"`
 }
 
 // MaxIterations is the max number of items to be captured by the parser.

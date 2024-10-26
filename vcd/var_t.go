@@ -9,28 +9,28 @@ import (
 )
 
 type IdT struct {
-	Name    string  `parser:"@Ident"`
-	Indices []*IdxT `parser:"@@*"`
+	Name    string  `parser:"@Ident" json:",omitempty"`
+	Indices []*IdxT `parser:"@@*" json:",omitempty"`
 }
 
 type IdxT struct {
-	Index    *int `parser:"(\"[\" @Int \"]\""`
-	MsbIndex *int `| "[" @Int `
-	LsbIndex *int `":" @Int "]")`
+	Index    *int `parser:"(\"[\" @Int \"]\"" json:",omitempty"`
+	MsbIndex *int `parser:"| \"[\" @Int" `
+	LsbIndex *int `parser:" \":\" @Int \"]\") " json:",omitempty"`
 }
 
 type VarT struct {
-	Pos        lexer.Position
+	Pos        lexer.Position `json:"-"`
 	tokenCount int
 	varTokens  []string // Accumulated tokens that refer to the signal variable. Can be many.
 	p          *participle.Parser[IdT]
 
-	Kw      bool
-	VarType string
-	Size    int
-	Code    string
-	Id      IdT
-	KwEnd   bool
+	Kw      bool   `json:",omitempty"`
+	VarType string `json:",omitempty"`
+	Size    int    `json:",omitempty"`
+	Code    string `json:",omitempty"`
+	Id      IdT    `json:",omitempty"`
+	KwEnd   bool   `json:",omitempty"`
 }
 
 // Capture implements custom capturing of tokens into VarT.
