@@ -136,6 +136,8 @@ func (self TimescaleT) AsNanoseconds() float64 {
 }
 
 type TimeUnit struct {
+	Pos lexer.Position
+
 	Second      bool `parser:"\"s\""`
 	MilliSecond bool `parser:"| \"ms\""`
 	MicroSecond bool `parser:"| \"us\""`
@@ -163,6 +165,8 @@ func (self TimeUnit) Multiplier() float64 {
 }
 
 type ScopeT struct {
+	Pos lexer.Position
+
 	Scope     bool       `parser:"@KwScope"`
 	ScopeKind ScopeKindT `parser:"@@"`
 	Id        string     `parser:"@Ident @KwEnd"`
@@ -182,6 +186,8 @@ const (
 )
 
 type ScopeKindT struct {
+	Pos lexer.Position
+
 	Begin    bool `parser:"\"begin\""`
 	Fork     bool `parser:"| \"fork\""`
 	Function bool `parser:"| \"function\""`
@@ -227,25 +233,32 @@ type SimulationCommandT struct {
 }
 
 type DumpallT struct {
+	Pos lexer.Position
+
 	Kw          bool            `parser:"@KwDumpall"`
 	ValueChange []*ValueChangeT `parser:"@@*"`
 	KwEnd       bool            `parser:"@KwEnd"`
 }
 
 type DumpoffT struct {
+	Pos lexer.Position
+
 	Kw          bool            `parser:"@KwDumpoff"`
 	ValueChange []*ValueChangeT `parser:"@@*"`
 	KwEnd       bool            `parser:"@KwEnd"`
 }
 
 type DumponT struct {
+	Pos lexer.Position
+
 	Kw          bool            `parser:"@KwDumpon"`
 	ValueChange []*ValueChangeT `parser:"@@*"`
 	KwEnd       bool            `parser:"@KwEnd"`
 }
 
 type DumpvarsT struct {
-	Pos         lexer.Position
+	Pos lexer.Position
+
 	Kw          bool            `parser:"@KwDumpvars"`
 	ValueChange []*ValueChangeT `parser:"@@*"`
 	KwEnd       bool            `parser:"@KwEnd"`
@@ -281,6 +294,21 @@ type ScalarValueChangeT struct {
 
 	Value  ValueT `parser:"@@"`
 	IdCode string `parser:"@IdCode"`
+	Garble string `parser:"| @IdCode"`
+}
+
+func (self ScalarValueChangeT) GetIdCode() string {
+	if self.Garble != "" {
+		return string(self.Garble[1:])
+	}
+	return self.IdCode
+}
+
+func (self ScalarValueChangeT) GetValue() string {
+	if self.Garble != "" {
+		return string(self.Garble[1])
+	}
+	return self.Value.Value
 }
 
 type ValueT struct {
@@ -314,7 +342,13 @@ type VectorValueChange3T struct {
 	IdentifierCode string `parser:"@IdCode"`
 }
 
+// MaxIterations is the max number of items to be captured by the parser.
+// While the default is 1 million, VCD files can be GIGANTIC, so we just
+// let it rip.
+const MaxIterations = int(int64(^uint64(0) >> 1))
+
 func commonNewParser[T any](l *lexer.StatefulDefinition) *participle.Parser[T] {
+	participle.MaxIterations = MaxIterations
 	return participle.MustBuild[T](
 		participle.Lexer(l),
 		// For " variable[foo], variable[foo:bar]"

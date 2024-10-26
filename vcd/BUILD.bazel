@@ -24,12 +24,14 @@ go_test(
         "parser_test.go",
     ],
     embed = [":vcd"],
+    size = "small",
 )
 
 go_test(
     name = "parser_wild_test",
     srcs = ["parser_wild_test.go"],
     embed = [":vcd"],
+    size = "small",
 )
 
 go_test(
@@ -40,4 +42,5 @@ go_test(
     ],
     embed = [":vcd"],
     rundir = "vcd",
+    size = "medium",
 )
