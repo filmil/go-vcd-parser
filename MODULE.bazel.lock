@@ -261,7 +261,7 @@
         "bzlTransitiveDigest": "3lAltYJp6u8Z4k9qI7Nn1s2S5dTYTxi80hAMysQWRJE=",
         "usagesDigest": "oyU7ej1fR+R7NHc6uf4IvYcAJULK7CklzFf/JDIWrek=",
         "recordedFileInputs": {
-          "@@//go.mod": "84d7cb97e3cdf7de8e03a235365be6375fc60498f4cb9b1e76b9ba4cbece6de5",
+          "@@//go.mod": "2e0b5b9b31067523b6ba1b65ac0567d5938fa640c2bf78fd895e83e75b9a1322",
           "@@rules_go~//go.mod": "de22304b720f7f61350ec1c9739de6c0a1b1103fd22bfeb6e92c6c843ddc6d6e",
           "@@gazelle~//go.sum": "7c4460e8ecb5dd8691a51d4fa2e9e4751108b933636497ce46db499fc2e7a88d",
           "@@//go.sum": "53487bd858135af613cc53b68f856bc714e334397de286e3948986681cfcf19d",
@@ -389,6 +389,21 @@
               "sum": "h1:dGoOF9QVLYng8IHTm7BAyWqCqSheQ5pYWGhzW00YJr0=",
               "replace": "",
               "version": "v0.14.0"
+            }
+          },
+          "com_github_davecgh_go_spew": {
+            "bzlFile": "@@gazelle~//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "importpath": "github.com/davecgh/go-spew",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=",
+              "replace": "",
+              "version": "v1.1.1"
             }
           },
           "org_golang_x_tools": {
@@ -520,6 +535,7 @@
               "importpaths": {
                 "com_github_alecthomas_participle": "github.com/alecthomas/participle",
                 "com_github_alecthomas_participle_v2": "github.com/alecthomas/participle/v2",
+                "com_github_davecgh_go_spew": "github.com/davecgh/go-spew",
                 "org_golang_x_text": "golang.org/x/text",
                 "com_github_gogo_protobuf": "github.com/gogo/protobuf",
                 "com_github_golang_mock": "github.com/golang/mock",
@@ -631,6 +647,7 @@
           "explicitRootModuleDirectDeps": [
             "com_github_alecthomas_participle",
             "com_github_alecthomas_participle_v2",
+            "com_github_davecgh_go_spew",
             "org_golang_x_text"
           ],
           "explicitRootModuleDirectDevDeps": [],

@@ -19,4 +19,5 @@ use_repo(
     "com_github_alecthomas_participle",
     "com_github_alecthomas_participle_v2",
     "org_golang_x_text",
+    "com_github_davecgh_go_spew",
 )
