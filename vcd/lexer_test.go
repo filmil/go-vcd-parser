@@ -69,6 +69,11 @@ func TestBinstring(t *testing.T) {
 			},
 			no: []string{""},
 		},
+		{
+			pattern: StatePattern,
+			yes:     []string{"sfoo", "sf1", "s__booya__23__booya2_"},
+			no:      []string{"", "s"},
+		},
 	}
 
 	for _, test := range tests {

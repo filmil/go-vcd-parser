@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	participle "github.com/alecthomas/participle/v2"
-	"github.com/alecthomas/participle/v2/lexer"
 )
 
 type IdT struct {
@@ -20,7 +19,6 @@ type IdxT struct {
 }
 
 type VarT struct {
-	Pos        lexer.Position `json:"-"`
 	tokenCount int
 	varTokens  []string // Accumulated tokens that refer to the signal variable. Can be many.
 	p          *participle.Parser[IdT]
