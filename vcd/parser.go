@@ -15,16 +15,18 @@ type File struct {
 }
 
 type DeclarationCommandT struct {
-	CommentText    *string     `parser:"@KwComment @AnyNonspace* @KwEndSpecial" json:",omitempty"`
-	Var            *VarT       `parser:"| @KwVar (@Ws? @AnyNonspace)* @Ws? @KwEndSpecial" json:",omitempty"`
-	Date           *string     `parser:"| @KwDate @AnyNonspace* @KwEndSpecial" json:",omitempty"`
-	Version        *string     `parser:"| @KwVersion @AnyNonspace* @KwEndSpecial" json:",omitempty"`
-	Attrbegin      *bool       `parser:"| @KwAttrbegin @AnyNonspace* @KwEndSpecial" json:",omitempty"`
-	Attrend        *bool       `parser:"| @KwAttrend @AnyNonspace* @KwEndSpecial" json:",omitempty"`
-	EndDefinitions *bool       `parser:"| @KwEnddefinitions (@KwEnd|@KwEndSpecial)" json:",omitempty"`
-	Scope          *ScopeT     `parser:"| @@" json:",omitempty"`
-	Timescale      *TimescaleT `parser:"| @@" json:",omitempty"`
-	Upscope        *bool       `parser:"| @KwUpscope @KwEnd" json:",omitempty"`
+	CommentText *string `parser:"@KwComment @AnyNonspace* @KwEndSpecial" json:",omitempty"`
+	Var         *VarT   `parser:"| @KwVar (@Ws? @AnyNonspace)* @Ws? @KwEndSpecial" json:",omitempty"`
+	Date        *string `parser:"| @KwDate @AnyNonspace* @KwEndSpecial" json:",omitempty"`
+	Version     *string `parser:"| @KwVersion @AnyNonspace* @KwEndSpecial" json:",omitempty"`
+	Attrbegin   *bool   `parser:"| @KwAttrbegin @AnyNonspace* @KwEndSpecial" json:",omitempty"`
+	Attrend     *bool   `parser:"| @KwAttrend @AnyNonspace* @KwEndSpecial" json:",omitempty"`
+
+	EndDefinitions *bool `parser:"| @KwEnddefinitions (@KwEnd|@KwEndSpecial)" json:",omitempty"`
+
+	Scope     *ScopeT     `parser:"| @@" json:",omitempty"`
+	Timescale *TimescaleT `parser:"| @@" json:",omitempty"`
+	Upscope   *bool       `parser:"| @KwUpscope @KwEnd" json:",omitempty"`
 }
 
 type VarTypeT struct {

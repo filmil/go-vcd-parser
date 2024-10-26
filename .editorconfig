@@ -1,0 +1,14 @@
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+
+[{Makefile,**.mk}]
+indent_style = tab
+
+[lua]
+indent_style = space
+indent_size = 4
+insert_final_newline = true

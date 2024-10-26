@@ -23,8 +23,8 @@ func TestParseFromTheWild(t *testing.T) {
 		`$var logic 8 :! fifo_memory[48][7:0] $end`,
 		`$attrend $end`, // 10
 		`
-         $enddefinitions $end
-         $dumpvars 0V# $end`,
+        $enddefinitions $end
+        $dumpvars 0V# $end`,
 
 		`
         $enddefinitions $end

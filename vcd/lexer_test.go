@@ -44,30 +44,30 @@ func TestBinstring(t *testing.T) {
 		},
 		{
 			pattern: IdentifierPattern,
-			yes:     []string{
-                "a", "x", "y", "_", "a0",
-                "ooGa_BOoga", "__many_underscores",
-                "__1", "_something23b",
-            },
-			no:      []string{"", "$ 0", "$ 0", "#-42", "# 42", "0abc"},
+			yes: []string{
+				"a", "x", "y", "_", "a0",
+				"ooGa_BOoga", "__many_underscores",
+				"__1", "_something23b",
+			},
+			no: []string{"", "$ 0", "$ 0", "#-42", "# 42", "0abc"},
 		},
 		{
 			pattern: AnyWordPattern,
-			yes:     []string{
-                "a", "x", "y", "_", "a0",
-                "VERILOG-SIMULATOR",
-                ":", "V#",
-            },
-			no:      []string{""},
+			yes: []string{
+				"a", "x", "y", "_", "a0",
+				"VERILOG-SIMULATOR",
+				":", "V#",
+			},
+			no: []string{""},
 		},
 		{
 			pattern: PunctPattern,
-			yes:     []string{
-                ";", ":", "(", "_", ")",
-                ";.", ":.", "(", "_", ")",
-                ":",
-            },
-			no:      []string{""},
+			yes: []string{
+				";", ":", "(", "_", ")",
+				";.", ":.", "(", "_", ")",
+				":",
+			},
+			no: []string{""},
 		},
 	}
 

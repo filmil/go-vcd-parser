@@ -16,16 +16,16 @@ func TestBasicParse(t *testing.T) {
 		`$date something else $end`,
 		`$comment  this is some comment "string" $end`,
 		`$comment  this is some
-           comment "string" $end`,
+        comment "string" $end`,
 		`$enddefinitions $end`,
 		`
-            $comment this is an illustration of $enddefinitions $end
-            $enddefinitions $end
+        $comment this is an illustration of $enddefinitions $end
+        $enddefinitions $end
         `,
 		`$scope begin some_id $end`,
 		`$scope
-            module top
-         $end`,
+        module top
+        $end`,
 
 		`
         $timescale 10 ns $end
@@ -37,33 +37,33 @@ func TestBasicParse(t *testing.T) {
 
 		// 18.2.3.7
 		`$version
-            VERILOG-SIMULATOR 1.0a
-            $dumpfile("dump1.dump")
+        VERILOG-SIMULATOR 1.0a
+        $dumpfile("dump1.dump")
         $end`,
 
 		// 18.2.3.8
 		`$var
-            integer 32 (2 index
-         $end
+        integer 32 (2 index
+        $end
         `,
 		`$var
-            integer 32 (2 index[ 6 ]
-         $end
+        integer 32 (2 index[ 6 ]
+        $end
         `,
 		`$var
-            integer 32 (2 index[6]
-         $end
+        integer 32 (2 index[6]
+        $end
         `,
 		`$var
         integer 32 (2 index[ 6 : 10 ]
-         $end
+        $end
         `,
 		`$var
         integer 32 (2 index[6:10 ]
-         $end
+        $end
         `,
 		`
-$var reg 32 (k accumulator[31:0] $end
+        $var reg 32 (k accumulator[31:0] $end
         `,
 		// 18.2.3.9
 		`
