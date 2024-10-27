@@ -1,4 +1,4 @@
-package vcd
+package files
 
 import (
 	"bufio"
@@ -6,6 +6,8 @@ import (
 	"path"
 	"strings"
 	"testing"
+
+	"github.com/filmil/go-vcd-parser/vcd"
 )
 
 // This test runs in the directory //vcd.  See BUILD.bazel file for details.
@@ -26,7 +28,7 @@ func TestVCDFiles(t *testing.T) {
 			if err != nil {
 				t.Errorf("could not open file: %v: %v", name, err)
 			}
-			parser := NewParser[File]()
+			parser := vcd.NewParser[vcd.File]()
 
 			r := bufio.NewReader(f)
 
