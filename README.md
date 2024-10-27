@@ -73,6 +73,7 @@ Prior art:
 - https://pypi.org/project/vcdvcd/
 - https://github.com/gtkwave/gtkwave/blob/0a800de96255f7fb11beadb6729fdf670da76ecb/src/vcd_saver.c#L123
 - https://github.com/nickg/nvc/blob/8696f99160eba01c1beb6e243506af57ba9893ca/src/rt/wave.h#L28
+- https://github.com/kevinmehall/rust-vcd
 
 
 [bb]: https://github.com/filmil/go-vcd-parser/issues
