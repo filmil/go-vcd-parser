@@ -1,4 +1,4 @@
-package(default_visibility = ["//vcd:__pkg__"])
+package(default_visibility = ["//visibility:public"])
 
 filegroup(
     name = "samples",

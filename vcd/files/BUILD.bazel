@@ -1,0 +1,12 @@
+load("@rules_go//go:def.bzl", "go_test")
+
+go_test(
+    name = "files_test",
+    size = "medium",
+    srcs = ["vcd_files_test.go"],
+    data = [
+        "//vcd/files/samples",
+    ],
+    rundir = "vcd/files",
+    deps = ["//vcd"],
+)
