@@ -16,8 +16,11 @@ include:
 
 ## Why?
 
-- I wanted one written in go (compiled, static, well-tested)
-- I needed a confirmation that the code can parse realistic VCD files.
+- I wanted one written in go (compiled, static, well-tested). Most open source
+  alternatives I could find are written in Python, Perl and C++ (see the
+  References section below).
+- I needed a confirmation that the code can parse realistic VCD files. Hence,
+  the test coverage.
 
 ## Prerequisites
 
@@ -75,3 +78,4 @@ Prior art:
 [bb]: https://github.com/filmil/go-vcd-parser/issues
 [ii]: https://hdlfactory.com/note/2024/08/24/bazel-installation-via-the-bazelisk-method/
 [vv]: https://ieeexplore.ieee.org/document/10458102
+
