@@ -261,16 +261,31 @@
         "bzlTransitiveDigest": "3lAltYJp6u8Z4k9qI7Nn1s2S5dTYTxi80hAMysQWRJE=",
         "usagesDigest": "oyU7ej1fR+R7NHc6uf4IvYcAJULK7CklzFf/JDIWrek=",
         "recordedFileInputs": {
-          "@@//go.mod": "2e0b5b9b31067523b6ba1b65ac0567d5938fa640c2bf78fd895e83e75b9a1322",
+          "@@//go.mod": "1e2a8ec9656ee864c2e8203eadbd5ce7c175d2532a14e586f0ceb6c29b623b7d",
           "@@rules_go~//go.mod": "de22304b720f7f61350ec1c9739de6c0a1b1103fd22bfeb6e92c6c843ddc6d6e",
           "@@gazelle~//go.sum": "7c4460e8ecb5dd8691a51d4fa2e9e4751108b933636497ce46db499fc2e7a88d",
-          "@@//go.sum": "53487bd858135af613cc53b68f856bc714e334397de286e3948986681cfcf19d",
+          "@@//go.sum": "167fc07b500860c067ee80a2b1c9cee811b3b88be560f12f231c90bc099d4d25",
           "@@rules_go~//go.sum": "d56fdb19b21a5f12bcf625c49432371ac39c2def0f564098fbda107f7c080f40",
           "@@gazelle~//go.mod": "48dc6e771c3028ee1c18b9ffc81e596fd5f6d7e0016c5ef280e30f2821f60473"
         },
         "recordedDirentsInputs": {},
         "envVariables": {},
         "generatedRepoSpecs": {
+          "com_github_mattn_go_sqlite3": {
+            "bzlFile": "@@gazelle~//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "importpath": "github.com/mattn/go-sqlite3",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:tpSp2G2KyMnnQu99ngJ47EIkWVmliIizyZBfPrBWDRM=",
+              "replace": "",
+              "version": "v1.14.24"
+            }
+          },
           "org_golang_x_tools_go_vcs": {
             "bzlFile": "@@gazelle~//internal:go_repository.bzl",
             "ruleClassName": "go_repository",
@@ -374,6 +389,21 @@
               "sum": "h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=",
               "replace": "",
               "version": "v1.0.0"
+            }
+          },
+          "com_github_golang_glog": {
+            "bzlFile": "@@gazelle~//internal:go_repository.bzl",
+            "ruleClassName": "go_repository",
+            "attributes": {
+              "importpath": "github.com/golang/glog",
+              "build_directives": [],
+              "build_file_generation": "auto",
+              "build_extra_args": [],
+              "patches": [],
+              "patch_args": [],
+              "sum": "h1:1+mZ9upx1Dh6FmUTFR1naJ77miKiXgALjWOZ3NVFPmY=",
+              "replace": "",
+              "version": "v1.2.2"
             }
           },
           "org_golang_x_mod": {
@@ -533,9 +563,10 @@
             "ruleClassName": "_go_repository_config",
             "attributes": {
               "importpaths": {
-                "com_github_alecthomas_participle": "github.com/alecthomas/participle",
                 "com_github_alecthomas_participle_v2": "github.com/alecthomas/participle/v2",
                 "com_github_davecgh_go_spew": "github.com/davecgh/go-spew",
+                "com_github_golang_glog": "github.com/golang/glog",
+                "com_github_mattn_go_sqlite3": "github.com/mattn/go-sqlite3",
                 "org_golang_x_text": "golang.org/x/text",
                 "com_github_gogo_protobuf": "github.com/gogo/protobuf",
                 "com_github_golang_mock": "github.com/golang/mock",
@@ -612,21 +643,6 @@
               "version": "v2.1.1"
             }
           },
-          "com_github_alecthomas_participle": {
-            "bzlFile": "@@gazelle~//internal:go_repository.bzl",
-            "ruleClassName": "go_repository",
-            "attributes": {
-              "importpath": "github.com/alecthomas/participle",
-              "build_directives": [],
-              "build_file_generation": "auto",
-              "build_extra_args": [],
-              "patches": [],
-              "patch_args": [],
-              "sum": "h1:2bN7reTw//5f0cugJcTOnY/NYZcWQOaajW+BwZB5xWs=",
-              "replace": "",
-              "version": "v0.7.1"
-            }
-          },
           "com_github_google_go_cmp": {
             "bzlFile": "@@gazelle~//internal:go_repository.bzl",
             "ruleClassName": "go_repository",
@@ -645,9 +661,10 @@
         },
         "moduleExtensionMetadata": {
           "explicitRootModuleDirectDeps": [
-            "com_github_alecthomas_participle",
             "com_github_alecthomas_participle_v2",
             "com_github_davecgh_go_spew",
+            "com_github_golang_glog",
+            "com_github_mattn_go_sqlite3",
             "org_golang_x_text"
           ],
           "explicitRootModuleDirectDevDeps": [],

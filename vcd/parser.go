@@ -104,6 +104,10 @@ var stringToVarKind = map[string]VarKindCode{
 	"string": VarKindString,
 }
 
+func (self VarKindCode) Int() int {
+	return int(self)
+}
+
 func (self VarT) GetVarKind() VarKindCode {
 	v, ok := stringToVarKind[self.VarType]
 	if !ok {
