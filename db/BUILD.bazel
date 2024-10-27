@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "db",
+    srcs = ["pkg.go"],
+    importpath = "github.com/filmil/go-vcd-parser/db",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//vcd",
+        "@com_github_golang_glog//:glog",
+        "@com_github_mattn_go_sqlite3//:go-sqlite3",
+    ],
+)
+
+go_test(
+    name = "db_test",
+    srcs = ["pkg_test.go"],
+    embed = [":db"],
+    deps = ["//vcd"],
+)
