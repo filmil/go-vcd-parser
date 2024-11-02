@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"flag"
@@ -53,9 +54,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	b := bufio.NewReaderSize(file, 1000000)
+
 	start := time.Now()
 	glog.Infof("parsing input from: %v", inFile)
-	ast, err := run(file, inFile)
+	ast, err := run(b, inFile)
 	if err != nil {
 		glog.Errorf("error: %v: %v", inFile, err)
 		os.Exit(1)
