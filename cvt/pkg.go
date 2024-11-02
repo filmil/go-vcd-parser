@@ -86,7 +86,7 @@ func Convert(ctx context.Context, vcdFile *vcd.File, dbf *sql.DB) error {
 			if len(scope) < 2 {
 				continue
 			}
-			scope = scope[0 : len(scope)-2]
+			scope = scope[0 : len(scope)-1]
 		case e.Var != nil:
 			count++
 			v := e.Var
