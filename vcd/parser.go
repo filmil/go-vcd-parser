@@ -1,6 +1,8 @@
 package vcd
 
 import (
+	"fmt"
+
 	participle "github.com/alecthomas/participle/v2"
 	"github.com/alecthomas/participle/v2/lexer"
 )
@@ -257,12 +259,47 @@ type SimulationTimeT struct {
 	DecimalNumber string `parser:"@Timestamp" json:",omitempty"`
 }
 
+func (self SimulationTimeT) Value() uint64 {
+	var ret uint64
+	s := self.DecimalNumber
+	l := len(s)
+	s = s[1:l]
+
+	_, err := fmt.Sscanf(s, "%d", &ret)
+	if err != nil {
+		panic(fmt.Sprintf("Value is not parseable as uint64: %q, %+v",
+			s, self.DecimalNumber))
+	}
+	return ret
+}
+
 type ValueChangeT struct {
 	ScalarValueChange *ScalarValueChangeT `parser:"@@" json:",omitempty"`
 	VectorValueChange *VectorValueChangeT `parser:"| @@" json:",omitempty"`
 }
 
+func (self ValueChangeT) GetIdCode() string {
+	switch {
+	case self.ScalarValueChange != nil:
+		return self.ScalarValueChange.GetIdCode()
+	case self.VectorValueChange != nil:
+		return self.VectorValueChange.GetCode()
+	}
+	panic(fmt.Sprintf("unreachable: %+v", self))
+}
+
+func (self ValueChangeT) GetValue() string {
+	switch {
+	case self.ScalarValueChange != nil:
+		return self.ScalarValueChange.GetValue()
+	case self.VectorValueChange != nil:
+		return self.VectorValueChange.GetValue()
+	}
+	panic(fmt.Sprintf("unreachable: %+v", self))
+}
+
 type ScalarValueChangeT struct {
+	Pos    lexer.Position
 	Value  ValueT `parser:"@@" json:",omitempty"`
 	IdCode string `parser:"@IdCode" json:",omitempty"`
 	// Garble is used to work around the tokenizer being unable to
@@ -281,8 +318,12 @@ func (self ScalarValueChangeT) GetIdCode() string {
 }
 
 func (self ScalarValueChangeT) GetValue() string {
-	if self.Garble != "" {
-		return string(self.Garble[1])
+	g := self.Garble
+	if g != "" {
+		if len(g) < 2 {
+			panic(fmt.Sprintf("garble was weird: %+v", self))
+		}
+		return string(g[0])
 	}
 	return self.Value.Value
 }
@@ -297,19 +338,69 @@ type VectorValueChangeT struct {
 	VectorValueChange3 *VectorValueChange3T `parser:"| @@" json:",omitempty"`
 }
 
+func (self VectorValueChangeT) GetCode() string {
+	var ret string
+	switch {
+	case self.VectorValueChange1 != nil:
+		return self.VectorValueChange1.GetCode()
+	case self.VectorValueChange2 != nil:
+		return self.VectorValueChange2.GetCode()
+	case self.VectorValueChange3 != nil:
+		return self.VectorValueChange3.GetCode()
+	}
+	return ret
+}
+
+func (self VectorValueChangeT) GetValue() string {
+	var ret string
+	switch {
+	case self.VectorValueChange1 != nil:
+		return self.VectorValueChange1.GetValue()
+	case self.VectorValueChange2 != nil:
+		return self.VectorValueChange2.GetValue()
+	case self.VectorValueChange3 != nil:
+		return self.VectorValueChange3.GetValue()
+	}
+	return ret
+}
+
 type VectorValueChange1T struct {
-	BinaryNumber string `parser:"@Binstring" json:",omitempty"`
-	IdCode       string `parser:"@IdCode" json:",omitempty"`
+	Value  string `parser:"@Binstring" json:",omitempty"`
+	IdCode string `parser:"@IdCode" json:",omitempty"`
+}
+
+func (self VectorValueChange1T) GetCode() string {
+	return self.IdCode
+}
+
+func (self VectorValueChange1T) GetValue() string {
+	return self.Value[1:]
 }
 
 type VectorValueChange2T struct {
-	State  string `parser:" @StateString  " json:",omitempty"`
+	Value  string `parser:" @StateString  " json:",omitempty"`
 	IdCode string `parser:" @IdCode  " json:",omitempty"`
 }
 
+func (self VectorValueChange2T) GetCode() string {
+	return self.IdCode
+}
+
+func (self VectorValueChange2T) GetValue() string {
+	return self.Value[1:]
+}
+
 type VectorValueChange3T struct {
-	RealNumber     string `parser:"@RealString" json:",omitempty"`
-	IdentifierCode string `parser:"@IdCode" json:",omitempty"`
+	Value  string `parser:"@RealString" json:",omitempty"`
+	IdCode string `parser:"@IdCode" json:",omitempty"`
+}
+
+func (self VectorValueChange3T) GetCode() string {
+	return self.IdCode
+}
+
+func (self VectorValueChange3T) GetValue() string {
+	return self.Value[1:]
 }
 
 // MaxIterations is the max number of items to be captured by the parser.

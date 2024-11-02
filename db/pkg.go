@@ -35,7 +35,6 @@ var (
 
 // OpenDB opens the database by name, creating with the correct schema if one does not exist.
 func OpenDB(ctx context.Context, name string) (*sql.DB, error) {
-	glog.Infof("hello")
 	needsInit, err := CreateDBFile(name)
 	if err != nil {
 		return nil, fmt.Errorf("could not create DB file: %v: %v", name, err)
@@ -136,7 +135,7 @@ func AddSignal(ctx context.Context, tx *sql.Tx,
 		glog.V(1).Infof(
 			"db/addSignal: name=%q; kindCode=%v code=%q size=%v",
 			name, kindCode, code, size)
-		return fmt.Errorf("db/AddSignal: could not exec tx: %w", err)
+		return fmt.Errorf("db/AddSignal: could not exec tx(%q,%v,%q,%d): %w", name, kindCode, code, size, err)
 	}
 	return nil
 }
@@ -159,17 +158,13 @@ func FindSignalByName(ctx context.Context, tx *sql.Tx, name string) *sql.Row {
 
 func AddValue(ctx context.Context, tx *sql.Tx,
 	timestamp uint64, code string, value string) error {
-	glog.V(2).Infof(
-		"db.AddValue: name=%q; kindCode=%v code=%q size=%v",
-		timestamp, code, value)
-
+	glog.V(2).Infof("db.AddValue: timestamp=%d; code=%q value=%q", timestamp, code, value)
 	_, err := tx.ExecContext(ctx, `
-        INSERT INTO Values(Timestamp, Code, Value) VALUES (?, ?, ?)
+        INSERT INTO Svalues(Timestamp, Code, Value) VALUES (?, ?, ?)
     `, timestamp, code, value)
 	if err != nil {
-		glog.V(1).Infof(
-			"db.AddValue: name=%q; kindCode=%v code=%q size=%v",
-			timestamp, code, value)
+		glog.V(1).Infof("db.AddValue: timestamp=%d; kindCode=%q value=%q: %v",
+			timestamp, code, value, err)
 		return fmt.Errorf("db.AddValue: could not exec tx: %w", err)
 	}
 	return nil

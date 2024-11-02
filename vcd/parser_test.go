@@ -228,8 +228,32 @@ func TestResult(t *testing.T) {
 						ValueChange: &ValueChangeT{
 							VectorValueChange: &VectorValueChangeT{
 								VectorValueChange2: &VectorValueChange2T{
-									State:  "srx_get_start_bit",
+									Value:  "srx_get_start_bit",
 									IdCode: "^",
+								},
+							},
+						},
+					}, //
+				},
+			},
+		},
+		{input: `
+            $enddefinitions $end
+            bUUUUUUUU F
+        `,
+			expected: File{
+				DeclarationCommand: []*DeclarationCommandT{
+					{
+						EndDefinitions: Ptr(true),
+					},
+				},
+				SimulationCommand: []*SimulationCommandT{
+					{
+						ValueChange: &ValueChangeT{
+							VectorValueChange: &VectorValueChangeT{
+								VectorValueChange1: &VectorValueChange1T{
+									Value:  "bUUUUUUUU",
+									IdCode: "F",
 								},
 							},
 						},
