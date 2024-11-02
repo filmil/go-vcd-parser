@@ -94,7 +94,7 @@ func main() {
 				glog.Errorf("could not remove: %v: %v", outFile, err)
 				os.Exit(1)
 			}
-		} else {
+		} else if !os.IsNotExist(err) {
 			glog.Errorf("could not stat: %v: %v", outFile, err)
 			os.Exit(1)
 		}
