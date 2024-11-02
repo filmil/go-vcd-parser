@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "cvt",
+    srcs = ["pkg.go"],
+    importpath = "github.com/filmil/go-vcd-parser/cvt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//db",
+        "//vcd",
+        "@com_github_davecgh_go_spew//spew",
+        "@com_github_golang_glog//:glog",
+    ],
+)

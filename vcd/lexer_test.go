@@ -14,7 +14,7 @@ func TestBinstring(t *testing.T) {
 	}{
 		{
 			pattern: BinstringPattern,
-			yes:     []string{"b10", "bzZ10z01"},
+			yes:     []string{"b10", "bzZ10z01", "bUUUUUUUU"},
 			no:      []string{"", "b|"},
 		},
 		{

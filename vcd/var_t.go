@@ -12,10 +12,35 @@ type IdT struct {
 	Indices []*IdxT `parser:"@@*" json:",omitempty"`
 }
 
+func (self IdT) String() string {
+	var ret []string
+	ret = append(ret, self.Name)
+	for _, e := range self.Indices {
+		ret = append(ret, e.AsString())
+	}
+	return strings.Join(ret, "")
+}
+
 type IdxT struct {
 	Index    *int `parser:"(\"[\" @Int \"]\"" json:",omitempty"`
 	MsbIndex *int `parser:"| \"[\" @Int" `
 	LsbIndex *int `parser:" \":\" @Int \"]\") " json:",omitempty"`
+}
+
+func (self IdxT) AsString() string {
+	var ret []string
+
+	switch {
+	case self.Index != nil:
+		ret = append(ret, fmt.Sprintf("[%v]", *self.Index))
+	case self.MsbIndex != nil:
+		if self.LsbIndex == nil {
+			panic(fmt.Sprintf("LsbIndex is nil: %+v", self))
+		}
+		ret = append(ret, fmt.Sprintf("[%v:%v]", *self.MsbIndex, *self.LsbIndex))
+	}
+
+	return strings.Join(ret, "")
 }
 
 type VarT struct {

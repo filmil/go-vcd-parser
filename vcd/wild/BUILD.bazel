@@ -2,7 +2,7 @@ load("@rules_go//go:def.bzl", "go_test")
 
 go_test(
     name = "wild_test",
+    size = "small",
     srcs = ["parser_wild_test.go"],
     deps = ["//vcd"],
-    size = "small",
 )
