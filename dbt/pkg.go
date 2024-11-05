@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"strconv"
 	"sync"
 
@@ -12,6 +13,8 @@ import (
 	"github.com/filmil/go-vcd-parser/vcd"
 	"github.com/golang/glog"
 )
+
+var testdir string = os.Getenv("TEST_UNDECLARED_OUTPUTS_DIR")
 
 var (
 	counter int
@@ -25,7 +28,7 @@ func NewMemDB() string {
 		counter++
 		m.Unlock()
 	}
-	return fmt.Sprintf("test.%d.db?cache=shared&mode=memory", counter)
+	return fmt.Sprintf("%s/test.%d.db", testdir, counter)
 }
 
 type Instance struct {
@@ -65,7 +68,7 @@ func (self *Instance) newCtx() (context.Context, func()) {
 }
 
 func (self *Instance) newCode() string {
-	ret := strconv.FormatInt(int64(self.counter), 36)
+	ret := strconv.FormatInt(int64(self.counter+1000), 36)
 	self.counter++
 	return ret
 }
@@ -103,8 +106,7 @@ func (self *Instance) Signal(name string, kind vcd.VarKindCode, size int) *Signa
 //
 // Returns the parent `Instance` so that multiple signals could be added.
 func (self *Signal) TimeValues(pairs ...TimeValue) *Instance {
-	ctx, cancelFn := context.WithCancel(self.ctx)
-	defer cancelFn()
+	ctx := context.Background()
 	dbx := self.parent.db
 	tx, err := dbx.Begin()
 	if err != nil {

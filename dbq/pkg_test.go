@@ -11,8 +11,7 @@ import (
 
 func TestBasic(t *testing.T) {
 	t.Parallel()
-	ctx, cancelFn := context.WithCancel(context.Background())
-	defer cancelFn()
+	ctx := context.Background()
 
 	dbx, err := db.OpenDB(ctx, dbt.NewMemDB())
 	if err != nil {
@@ -25,14 +24,14 @@ func TestBasic(t *testing.T) {
 		//
 		// //clk   ________/~~~~~~~~~~...
 		//         ^0      ^100
-		TimeValues([]dbt.TimeValue{{0, "0"}, {100, "1"}}...)
+		TimeValues([]dbt.TimeValue{{0, "0"}, {100, "Z"}}...)
 
 	// Create a query engine.
-	q := New(dbx, ctx)
+	q := New(dbx)
 
 	// Demo query: just find first value of the signal.
 	s := q.Signal("//clk")
-	ts := s.FindFirst("1")
+	ts := s.FindFirst("Z")
 
 	// Crude examination.
 	if ts.Error() != nil {
