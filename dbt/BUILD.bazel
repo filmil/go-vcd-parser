@@ -1,0 +1,24 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "dbt",
+    srcs = ["pkg.go"],
+    importpath = "github.com/filmil/go-vcd-parser/dbt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//db",
+        "//vcd",
+        "@com_github_golang_glog//:glog",
+    ],
+)
+
+go_test(
+    name = "dbt_test",
+    srcs = ["pkg_test.go"],
+    embed = [":dbt"],
+    deps = [
+        "//db",
+        "//vcd",
+        "@com_github_davecgh_go_spew//spew",
+    ],
+)
