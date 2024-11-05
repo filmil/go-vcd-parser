@@ -3,6 +3,7 @@ package dbq
 import (
 	"context"
 	"database/sql"
+	"fmt"
 )
 
 type Timestamp struct {
@@ -26,20 +27,19 @@ func (self Timestamp) T() uint64 {
 }
 
 type Instance struct {
-	db  *sql.DB
-	ctx context.Context
+	db *sql.DB
 }
 
-func New(db *sql.DB, ctx context.Context) *Instance {
+func New(db *sql.DB) *Instance {
 	return &Instance{
-		db:  db,
-		ctx: ctx,
+		db: db,
 	}
 }
 
 func (self *Instance) Signal(name string) *Signal {
 	return &Signal{
-		i: self,
+		i:    self,
+		name: name,
 	}
 }
 
@@ -53,39 +53,39 @@ func (self *Signal) FindFirst(val string) *Timestamp {
 		name: self.name,
 		val:  val,
 	}
-	ctx, cf := context.WithCancel(self.i.ctx)
-	defer cf()
+	ctx := context.TODO()
 	dbx := self.i.db
 	tx, err := dbx.Begin()
 	if err != nil {
 		ret.err = err
 		return ret
 	}
+	fmt.Printf("name: %v; val: %v\n", self.name, val)
 	rows, err := tx.QueryContext(
 		ctx,
 		`
         -- Finds first timestamp from the beginning of time at which the given
         -- signal had the specified value.
-        SELECT MIN(Svalues.Timestamp)
-        FROM Svalues
-        INNER JOIN Signals
-        ON Svalues.Code = Signals.Code
-        WHERE Signals.Name = ?
-          AND Svalues.Value = ?;
+        SELECT      MIN(Svalues.Timestamp)
+        FROM        Svalues
+        INNER JOIN  Signals
+        ON          Svalues.Code=Signals.Code
+        WHERE       Signals.Name=?
+          AND       Svalues.Value=?;
         `,
 		self.name, val)
-	if err := tx.Commit(); err != nil {
-		ret.err = err
-		return ret
-	}
 	if rows.Next() {
 		var ts uint64
 		err := rows.Scan(&ts)
+		fmt.Printf("scan: %v\n", ts)
 		if err != nil {
 			ret.err = err
-			return ret
 		}
 		ret.ts = &ts
+	} else {
+		if rows.Err() != nil {
+			ret.err = rows.Err()
+		}
 	}
 	return ret
 }
