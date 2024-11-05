@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "dbq",
+    srcs = ["pkg.go"],
+    importpath = "github.com/filmil/go-vcd-parser/dbq",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_golang_glog//:glog"],
+)
+
+go_test(
+    name = "dbq_test",
+    srcs = ["pkg_test.go"],
+    embed = [":dbq"],
+    deps = [
+        "//db",
+        "//dbt",
+        "//vcd",
+    ],
+)
