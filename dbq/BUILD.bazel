@@ -5,6 +5,7 @@ go_library(
     srcs = ["pkg.go"],
     importpath = "github.com/filmil/go-vcd-parser/dbq",
     visibility = ["//visibility:public"],
+    deps = ["//db"],
 )
 
 go_test(

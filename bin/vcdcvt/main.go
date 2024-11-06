@@ -3,11 +3,13 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/filmil/go-vcd-parser/cvt"
@@ -28,10 +30,11 @@ func run(r io.Reader, filename string) (*vcd.File, error) {
 }
 
 func main() {
-	var inFile, outFile, outFmt string
+	var inFile, outFile, outFmt, signalFile string
 	flag.StringVar(&inFile, "in", "", "Input filename, VCD file (required)")
 	flag.StringVar(&outFile, "out", "", "Output filename, parsed vcd.File (required)")
 	flag.StringVar(&outFmt, "format", "", "Output format to use: json, sqlite")
+	flag.StringVar(&signalFile, "signals", "", "Signals CSV file to write (optional)")
 	flag.IntVar(&cvt.MaxTx, "max-tx", 1000000, "Number of ops in a transaction")
 	flag.Parse()
 
@@ -109,7 +112,40 @@ func main() {
 			glog.Errorf("could not convert: %v", err)
 			os.Exit(1)
 		}
+
+		if signalFile != "" {
+			// Write a list of all signals.
+			of, err := os.Create(signalFile)
+			if err != nil {
+				glog.Warningf("did not write a signals file: %v", err)
+			} else {
+				defer of.Close()
+				w := csv.NewWriter(of)
+				rows, err := dbx.Query(`SELECT Name, Type, Size FROM Signals;`)
+				if err != nil {
+					glog.Warningf("could not execute query: %v", err)
+					os.Exit(1)
+				}
+				if err := w.Write([]string{"name", "type", "size"}); err != nil {
+					glog.Warningf("could not write: %v", err)
+					os.Exit(1)
+				}
+				for rows.Next() {
+					n, t, s, err := db.Scan3NoNext[string, int, int](rows)
+					if err != nil {
+						glog.Warningf("could not scan: %v", err)
+						os.Exit(1)
+					}
+					ts, ss := strconv.Itoa(*t), strconv.Itoa(*s)
+					if err := w.Write([]string{*n, ts, ss}); err != nil {
+						glog.Warningf("could not write: %v", err)
+						os.Exit(1)
+					}
+				}
+			}
+		}
 	}
 	endWrite := time.Now()
 	glog.Infof("Done. Writing took: %v", endWrite.Sub(startWrite))
+
 }
