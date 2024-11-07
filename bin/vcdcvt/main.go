@@ -38,6 +38,9 @@ func main() {
 	flag.IntVar(&cvt.MaxTx, "max-tx", 1000000, "Number of ops in a transaction")
 	flag.Parse()
 
+	pwd, _ := os.Getwd()
+	glog.Infof("PWD: %v", pwd)
+
 	if inFile == "" {
 		glog.Errorf("flag --in=... is required")
 		os.Exit(1)
