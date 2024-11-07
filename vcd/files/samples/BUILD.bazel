@@ -1,6 +1,12 @@
 package(default_visibility = ["//visibility:public"])
+load("//:macros.bzl", "vcd_index")
 
 filegroup(
     name = "samples",
     srcs = glob(["*.vcd"]),
+)
+
+vcd_index(
+    name = "tb_example",
+    vcd_target = "tb.vcd",
 )
