@@ -3,10 +3,13 @@ package dbq
 import (
 	"context"
 	"database/sql"
+	"flag"
 	"fmt"
 	"math"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/filmil/go-vcd-parser/db"
+	"github.com/golang/glog"
 )
 
 var (
@@ -14,17 +17,47 @@ var (
 	TimestampInfty = Timestamp{
 		ts: ptr[uint64](math.MaxUint64),
 	}
+	TimestampNone = ptr(Timestamp{})
+
 	// TimestampZero is a timestamp at time zero.
 	TimestampZero = Timestamp{
 		ts: ptr[uint64](0),
 	}
+
+	testDbName string
+	testDb     *sql.DB
 )
+
+func init() {
+	flag.StringVar(&testDbName, "test-db-name", "", "The test db name.")
+}
+
+// GetTestDB Obtains a test database for this test case.  Only one database is
+// opened per a test package.
+func GetTestDB() (*sql.DB, context.Context, error) {
+	ctx := context.Background()
+	if testDbName == "" {
+		return nil, nil, fmt.Errorf("No test db name. Start test with arg --test-db-name=...")
+	}
+	if testDb != nil {
+		return testDb, ctx, nil
+	}
+	testDb, err := db.OpenDB(ctx, testDbName)
+	return testDb, ctx, err
+}
 
 type Timestamp struct {
 	ts   *uint64
 	err  error
 	name string
 	val  string
+}
+
+func (self Timestamp) Eq(ts uint64) bool {
+	if self.IsNone() {
+		return false
+	}
+	return *(self.ts) == ts
 }
 
 func ptr[T any](v T) *T {
@@ -151,6 +184,61 @@ func (self Value) IsNone() bool {
 	return self.val == nil
 }
 
+func (self *Signal) EqAt(t *Timestamp, v string) *Timestamp {
+	if self.ValueAtP(t).V() == v {
+		return t
+	}
+	return nil
+}
+
+// ValueAtP returns the value of the signal exactly at the timestamp - including
+// when there is a signal change exactly at the timestamp.
+func (self *Signal) ValueAtP(t *Timestamp) *Value {
+	var ret Value
+	ctx := context.TODO()
+	dbx := self.i.db
+	tx, err := dbx.Begin()
+	if err != nil {
+		ret.err = err
+		return &ret
+	}
+	rows, err := tx.QueryContext(
+		ctx,
+		`
+        -- Find the value at the most recent transition before the given
+        -- timestamp.
+        -- TODO: Perhaps introduce a WITH table?
+        SELECT      Svalues.Value
+        FROM        Svalues INNER JOIN  Signals
+        ON          Svalues.Code = Signals.Code
+        WHERE       Signals.Name = ?
+          AND       Svalues.Timestamp = (
+            SELECT      MAX(Svalues.Timestamp)
+            FROM        Svalues INNER JOIN  Signals
+            ON          Svalues.Code=Signals.Code
+            WHERE       Signals.Name=?
+              AND       Svalues.Timestamp = ?
+          )
+        ;
+        `,
+		self.name, self.name, t.T())
+	if rows.Next() {
+		var val string
+		err := rows.Scan(&val)
+		if err != nil {
+			ret.err = err
+		}
+		ret.val = &val
+	} else {
+		if rows.Err() != nil {
+			ret.err = rows.Err()
+		} else {
+			return self.ValueAt(t)
+		}
+	}
+	return &ret
+}
+
 func (self *Signal) ValueAt(t *Timestamp) *Value {
 	var ret Value
 	ctx := context.TODO()
@@ -207,7 +295,6 @@ func (self *Signal) FindFirst(val string) *Timestamp {
 		ret.err = err
 		return ret
 	}
-	fmt.Printf("name: %v; val: %v\n", self.name, val)
 	rows, err := tx.QueryContext(
 		ctx,
 		`
@@ -319,4 +406,49 @@ func (self *Signal) NextChange(t *Timestamp) *Timestamp {
 	ret.val = *val
 
 	return &ret
+}
+
+// FindTsFn is a timestamp-based function.
+type FindTsFn func(*Timestamp) *Timestamp
+
+// / FindFirst finds a timestamp
+func FindFirst(fns ...FindTsFn) *Timestamp {
+	return FindFirstFrom(&TimestampZero, fns...)
+}
+
+// / FindFirstFrom finds a timestamp matching the sequence of predicates `fns`.
+func FindFirstFrom(start *Timestamp, fns ...FindTsFn) *Timestamp {
+	var retryTs *Timestamp
+	currentTs := start
+
+	for found, k := false, 0; !found; k++ {
+		glog.V(3).Infof("-------------\n")
+		retryTs = currentTs
+		var j int
+		for i, fn := range fns {
+			fmt.Printf("i=%v: applying to: %+v\n", i, currentTs)
+			currentTs = fn(currentTs)
+			if currentTs == nil || currentTs.IsNone() {
+				if i == 0 {
+					// Nothing was found, return None.
+					glog.V(3).Infof("nothing found sigh.\n")
+					retryTs = currentTs
+					goto exit
+				}
+				// Wasn't found, restart from retryTs.
+				currentTs = retryTs
+				glog.V(3).Infof("i=%v: not found restarting from: %+v\n", i, currentTs)
+				break
+			} else {
+				if i == 0 {
+					retryTs = currentTs
+				}
+				glog.V(3).Infof("i=%v FOUND: %+v\n", i, spew.Sdump(currentTs))
+			}
+			j = i
+		}
+		found = j == len(fns)-1 || k > 100
+	}
+exit:
+	return retryTs
 }

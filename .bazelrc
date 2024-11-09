@@ -3,3 +3,6 @@ try-import %workspace%/user.bazelrc
 
 # Add project-wide settings below.
 test --test_output=errors
+
+# Useful for examining generated database files.
+test --nozip_undeclared_test_outputs
