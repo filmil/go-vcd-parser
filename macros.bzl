@@ -1,5 +1,7 @@
-# Generate analysis output from a VCD file.
+load("@rules_go//go:def.bzl", "go_test")
 
+
+# Generate analysis output from a VCD file.
 def vcd_index(name, vcd_target):
     """Creates a VCD file index from the given target, which must have exactly
     one VCD output.
@@ -37,3 +39,15 @@ def vcd_index(name, vcd_target):
         name = name,
         srcs = [ _sqlite_name ],
     )
+
+
+def vcd_go_test(name, vcd_file, args=[], data=[], **kw):
+   _args = args + [ "--test-db-name=$(location {})".format(vcd_file)]
+   _data = data + [ vcd_file ]
+   go_test(
+       name = name,
+       args = _args,
+       data = _data,
+       **kw
+   )
+
