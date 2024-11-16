@@ -16,10 +16,11 @@ include:
 
 ## Why?
 
-- I wanted one written in go (compiled, static, well-tested). Most open source
+- **I wanted one written in go** (compiled, static, well-tested). Most open source
   alternatives I could find are written in Python, Perl and C++ (see the
   References section below).
-- I needed a confirmation that the code can parse realistic VCD files. Hence,
+- **I wanted one that is *tested***. Most alternatives contain no tests at all.
+- **I needed a confirmation that the code can parse realistic VCD files.** Hence,
   the test coverage.
 
 ## Prerequisites
