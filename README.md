@@ -19,9 +19,11 @@ include:
 - **I wanted one written in go** (compiled, static, well-tested). Most open source
   alternatives I could find are written in Python, Perl and C++ (see the
   References section below).
-- **I wanted one that is *tested***. Most alternatives contain no tests at all.
+- **I wanted one that is *tested***. Most alternatives contain no tests at all. Some
+  that I have actually tried would just throw an exception when faced with a
+  realistic VCD file.
 - **I needed a confirmation that the code can parse realistic VCD files.** Hence,
-  the test coverage.
+  the test coverage. And samples of realistic VCD files used for testing.
 
 ## Prerequisites
 
