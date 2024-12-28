@@ -1,8 +1,8 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 load("//:macros.bzl", "vcd_go_test")
 
 go_library(
-    name = "dbq",
+    name = "go_default_library",
     srcs = ["pkg.go"],
     importpath = "github.com/filmil/go-vcd-parser/dbq",
     visibility = ["//visibility:public"],
@@ -17,7 +17,7 @@ vcd_go_test(
     name = "dbq_test",
     size = "small",
     srcs = ["pkg_test.go"],
-    embed = [":dbq"],
+    embed = [":go_default_library"],
     vcd_file = "//vcd/files/samples:tb_example",
     deps = [
         "//db",

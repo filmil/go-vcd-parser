@@ -1,10 +1,9 @@
-load("@gazelle//:def.bzl", "gazelle")
+load("@bazel_gazelle//:def.bzl", "gazelle")
+load("@com_github_bazelbuild_buildtools//buildifier:def.bzl", "buildifier")
 
 # bazel run //:gazelle
 # gazelle:prefix github.com/filmil/go-vcd-parser
 gazelle(name = "gazelle")
-
-load("@buildifier_prebuilt//:rules.bzl", "buildifier")
 
 # bazel run //:buildifier
 buildifier(
