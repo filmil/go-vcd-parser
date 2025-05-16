@@ -6,10 +6,11 @@ def vcd_index(name, vcd_target):
     """Creates a VCD file index from the given target, which must have exactly
     one VCD output.
     """
+    _label = Label("//bin/vcdcvt")
     _sqlite_name = "{}.signals.sqlite".format(name)
     _signals_name = "{}.signals.csv".format(name)
-    _vcd_name = "$(location {})".format(vcd_target)
-    _command = "$(location {})".format("//bin/vcdcvt")
+    _vcd_name = "$(locations {})".format(vcd_target)
+    _command = "$(location {})".format(_label)
     native.genrule(
         name = "{}_index".format(name),
         srcs = [vcd_target],
@@ -17,9 +18,9 @@ def vcd_index(name, vcd_target):
         message = "Indexing VCD {}".format(vcd_target),
         cmd = """
         {command} --format=sqlite --logtostderr \
-                --in={input} \
                 --out=$(location {sqlite}) \
-                --signals=$(location {signals})
+                --signals=$(location {signals}) \
+                --in={input}
         """.format(
             command = _command,
             input = _vcd_name,
@@ -28,7 +29,7 @@ def vcd_index(name, vcd_target):
         ),
         tools = [
             vcd_target,
-            Label("//bin/vcdcvt"),
+            _label,
         ]
     )
     native.filegroup(
