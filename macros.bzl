@@ -33,7 +33,7 @@ def vcd_index(name, vcd_target):
         ]
     )
     native.filegroup(
-        name = "{}_signals",
+        name = "{}_signals".format(name),
         srcs = [ _signals_name ],
     )
     native.filegroup(
@@ -43,7 +43,7 @@ def vcd_index(name, vcd_target):
 
 
 def vcd_go_test(name, vcd_file, args=[], data=[], **kw):
-   _args = args + [ "--test-db-name=$(location {})".format(vcd_file)]
+   _args = args + [ "--test-db-name=_main/$(location {})".format(vcd_file)]
    _data = data + [ vcd_file ]
    go_test(
        name = name,

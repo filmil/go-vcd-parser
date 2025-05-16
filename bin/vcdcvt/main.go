@@ -117,7 +117,7 @@ func main() {
 		}
 
 		if signalFile != "" {
-			// Write a list of all signals.
+			glog.Infof("writing signals dump file: %q", signalFile)
 			of, err := os.Create(signalFile)
 			if err != nil {
 				glog.Warningf("did not write a signals file: %v", err)
@@ -139,6 +139,7 @@ func main() {
 						glog.Warningf("could not scan: %v", err)
 						os.Exit(1)
 					}
+					glog.Infof("%v %v %v", *n, *t, *s)
 					ts, ss := strconv.Itoa(*t), strconv.Itoa(*s)
 					if err := w.Write([]string{*n, ts, ss}); err != nil {
 						glog.Warningf("could not write: %v", err)

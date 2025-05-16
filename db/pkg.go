@@ -37,7 +37,7 @@ var (
 func OpenDB(ctx context.Context, name string) (*sql.DB, error) {
 	needsInit, err := CreateDBFile(name)
 	if err != nil {
-		return nil, fmt.Errorf("could not create DB file: %v: %v", name, err)
+		return nil, fmt.Errorf("could not create DB file: %q:\n\t%v", name, err)
 	}
 	db, err := sql.Open(SqliteDriver, name)
 	if needsInit {
@@ -72,7 +72,7 @@ func CreateDBFile(name string) (bool, error) {
 			// No such file, create it and set for schema creation.
 			_, err := os.Create(name)
 			if err != nil {
-				return false, fmt.Errorf("could not create: %v: %w", name, err)
+				return false, fmt.Errorf("could not create: %v:\n\t%w", name, err)
 			}
 
 			// Add the pragma suffixes

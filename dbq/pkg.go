@@ -6,6 +6,8 @@ import (
 	"flag"
 	"fmt"
 	"math"
+	"os"
+	"path/filepath"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/filmil/go-vcd-parser/db"
@@ -42,7 +44,8 @@ func GetTestDB() (*sql.DB, context.Context, error) {
 	if testDb != nil {
 		return testDb, ctx, nil
 	}
-	testDb, err := db.OpenDB(ctx, testDbName)
+	runfiles_dir := os.Getenv("RUNFILES_DIR")
+	testDb, err := db.OpenDB(ctx, filepath.Join(runfiles_dir, testDbName))
 	return testDb, ctx, err
 }
 
