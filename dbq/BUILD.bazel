@@ -3,12 +3,16 @@ load("//:macros.bzl", "vcd_go_test")
 
 go_library(
     name = "dbq",
-    srcs = ["pkg.go"],
+    srcs = [
+        "asserts.go",
+        "pkg.go",
+    ],
     importpath = "github.com/filmil/go-vcd-parser/dbq",
     visibility = ["//visibility:public"],
     deps = [
         "//db",
         "@com_github_davecgh_go_spew//spew",
+        "@com_github_dsnet_golib_unitconv//:unitconv",
         "@com_github_golang_glog//:glog",
     ],
 )

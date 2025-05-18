@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/filmil/go-vcd-parser/db"
@@ -56,6 +57,11 @@ type Timestamp struct {
 	val  string
 }
 
+// Pretty-prints a Timestamp.
+func (self Timestamp) String() string {
+	return fmt.Sprintf("%v on %q", self.D(), self.name)
+}
+
 func (self Timestamp) Eq(ts uint64) bool {
 	if self.IsNone() {
 		return false
@@ -85,6 +91,11 @@ func (self Timestamp) T() uint64 {
 	return *self.ts
 }
 
+func (self Timestamp) D() time.Duration {
+	// Assumes sim resolution of 1s.
+	return time.Duration(self.T()) * time.Nanosecond / 1000
+}
+
 type Instance struct {
 	db *sql.DB
 }
@@ -107,6 +118,14 @@ type Signal struct {
 	name string
 }
 
+func (self Signal) String() string {
+	return fmt.Sprintf(self.name)
+}
+
+func (self Signal) Name() string {
+	return self.name
+}
+
 func (self *Signal) findSignal(t *Timestamp, val string, q string) *Timestamp {
 	ret := &Timestamp{
 		name: self.name,
@@ -119,7 +138,8 @@ func (self *Signal) findSignal(t *Timestamp, val string, q string) *Timestamp {
 	dbx := self.i.db
 	tx, err := dbx.Begin()
 	if err != nil {
-		ret.err = err
+		ret.err = fmt.Errorf("while looking up value %q in signal %q:\n\t%w",
+			val, self.name, err)
 		return ret
 	}
 	rows, err := tx.QueryContext(ctx, q, self.name, val, t.T())
@@ -127,12 +147,14 @@ func (self *Signal) findSignal(t *Timestamp, val string, q string) *Timestamp {
 		var ts uint64
 		err := rows.Scan(&ts)
 		if err != nil {
-			ret.err = err
+			ret.err = fmt.Errorf("while looking up value %q in signal %q:\n\t%w",
+				val, self.name, err)
 		}
 		ret.ts = &ts
 	} else {
 		if rows.Err() != nil {
-			ret.err = rows.Err()
+			ret.err = fmt.Errorf("while looking up value %q in signal %q:\n\t%w",
+				val, self.name, rows.Err())
 		}
 	}
 	return ret

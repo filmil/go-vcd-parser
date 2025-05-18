@@ -26,6 +26,12 @@ def go_dependencies():
         version = "v1.1.1",
     )
     go_repository(
+        name = "com_github_dsnet_golib_unitconv",
+        importpath = "github.com/dsnet/golib/unitconv",
+        sum = "h1:45gXng3Op1vTrnX1PdM9Bla4mEpBFYA5aC8dlqacmwM=",
+        version = "v1.0.2",
+    )
+    go_repository(
         name = "com_github_golang_glog",
         importpath = "github.com/golang/glog",
         sum = "h1:1+mZ9upx1Dh6FmUTFR1naJ77miKiXgALjWOZ3NVFPmY=",
