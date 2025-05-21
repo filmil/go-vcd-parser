@@ -127,7 +127,7 @@ func main() {
 			os.Exit(1)
 		}
 		if curr == timestamp {
-			s := fmt.Sprintf("%v=%v", signals.v[signal], value)
+			s := fmt.Sprintf("%v=%v", signals.Get(signal), value)
 			stanzas = append(stanzas, s)
 		} else {
 			// Figure out how many dots to put in.
@@ -136,7 +136,7 @@ func main() {
 			fmt.Printf("# timestamp: %v\n", curr)
 			fmt.Printf("%v.\n", strings.Join(stanzas, ";"))
 
-			s := fmt.Sprintf("%v=%v", signals.v[signal], value)
+			s := fmt.Sprintf("%v=%v", signals.Get(signal), value)
 			stanzas = []string{s}
 			curr = timestamp
 		}
