@@ -52,3 +52,31 @@ def vcd_go_test(name, vcd_file, args=[], data=[], **kw):
        **kw
    )
 
+
+def index_to_drawtiming(name, sqlite_name, args=[]):
+    _tool = Label("//bin/sqlite2drawtiming")
+    _outfile = "{}.drawtiming.t"
+    _name = "{}_gen".format(name)
+    native.genrule(
+        name = _name,
+        srcs = [sqlite_name],
+        outs = [_outfile],
+        tools = [
+            _tool,
+        ],
+        cmd = """
+            {command} {args} --in={sqlite} > {outfile}
+        """.format(
+            command="$(location {})".format(_tool),
+            args=" ".join(args),
+            outfile=_outfile,
+            sqlite=sqlite_name,
+        ),
+    )
+    native.filegroup(
+        name = name,
+        srcs = [
+            ":{}".format(_name)
+        ]
+    )
+
