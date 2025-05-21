@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "sqlite2drawtiming_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/filmil/go-vcd-parser/bin/sqlite2drawtiming",
+    visibility = ["//visibility:private"],
+    deps = ["//db"],
+)
+
+go_binary(
+    name = "sqlite2drawtiming",
+    embed = [":sqlite2drawtiming_lib"],
+    visibility = ["//visibility:public"],
+)
