@@ -20,6 +20,22 @@ jobs:
           version: 7.3.0
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Cache Bazel artifacts
+        uses: actions/cache@v3
+        with:
+          path: "~/.cache/bazel"
+          key: ${{ runner.os }}-bazel-${{ hashFiles('**/MODULE.bazel.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bazel-
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: Build
         run: "bazel build //..."
       - name: Test
