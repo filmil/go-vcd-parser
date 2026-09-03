@@ -1,6 +1,7 @@
 # Value Change Dump (VCD) File parser
 
-[![Test status](https://github.com/filmil/go-vcd-parser/workflows/Test/badge.svg)](https://github.com/filmil/go-vcd-parser/workflows/Test/badge.svg)
+[![Test](https://github.com/filmil/go-vcd-parser/actions/workflows/test.yml/badge.svg)](https://github.com/filmil/go-vcd-parser/actions/workflows/test.yml)
+[![Release](https://github.com/filmil/go-vcd-parser/actions/workflows/release.yml/badge.svg)](https://github.com/filmil/go-vcd-parser/actions/workflows/release.yml)
 
 This is a parser for the Value Change Dump files, a.k.a VCD file format. The
 file format is defined in the [IEEE Standard 1800-2003][vv]. Specifically, the
