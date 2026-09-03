@@ -1,6 +1,6 @@
 module github.com/filmil/go-vcd-parser
 
-go 1.24.1
+go 1.27.1
 
 require (
 	github.com/alecthomas/participle/v2 v2.1.4
