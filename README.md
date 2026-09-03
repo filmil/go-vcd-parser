@@ -144,10 +144,14 @@ with the go toolkit.
 
 ## Limitations
 
-- The parser is not streaming. It produces an in-memory representation of the
+- **The parser is not streaming.** It produces an in-memory representation of the
   VCD file before it is able to write a parsed representation out. As VCD files
   can get extraordinarily large, you may find that some realistic large files
   can not be parsed with success.
+- **VCD format is not ideal.** It cannot describe structured types as defined.
+  Some pragmatic extensions make this better, but if you are exporting into the
+  VCD format from say Vivado's `xsim`, it will produce a significantly subpar
+  output versus Vivado's native (binary and undocumented) WDB format.
 
 ## Troubleshooting
 
