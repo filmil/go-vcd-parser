@@ -3,6 +3,9 @@
 [![Test](https://github.com/filmil/go-vcd-parser/actions/workflows/test.yml/badge.svg)](https://github.com/filmil/go-vcd-parser/actions/workflows/test.yml)
 [![Release](https://github.com/filmil/go-vcd-parser/actions/workflows/release.yml/badge.svg)](https://github.com/filmil/go-vcd-parser/actions/workflows/release.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/filmil/go-vcd-parser.svg)](https://pkg.go.dev/github.com/filmil/go-vcd-parser)
+[![Go Report Card](https://goreportcard.com/badge/github.com/filmil/go-vcd-parser)](https://goreportcard.com/report/github.com/filmil/go-vcd-parser)
+[![Go version](https://img.shields.io/github/go-mod/go-version/filmil/go-vcd-parser)](go.mod)
+[![Latest release](https://img.shields.io/github/v/release/filmil/go-vcd-parser?include_prereleases)](https://github.com/filmil/go-vcd-parser/releases)
 
 This is a parser for the Value Change Dump files, a.k.a VCD file format. The
 file format is defined in the [IEEE Standard 1800-2003][vv]. Specifically, the
