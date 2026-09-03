@@ -44,8 +44,21 @@ jobs:
           default_bump: false
           dry_run: true
 
+      # The action above answers nothing when the repository has no tag at
+      # all, so the very first release needs its version stated here. Every
+      # later release computes normally from the tag this one plants.
+      - name: Resolve the release tag
+        id: tag
+        run: |
+          tag="${{ steps.next.outputs.new_tag }}"
+          if [ -z "$tag" ] && [ -z "$(git tag)" ]; then
+            tag="v0.1.0"
+            echo "no tags exist; bootstrapping the first release as $tag"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
       - name: Build the release binaries
-        if: steps.next.outputs.new_tag != ''
+        if: steps.tag.outputs.tag != ''
         run: |
           mkdir -p out
           for platform in linux_amd64 linux_arm64 darwin_amd64 darwin_arm64; do
@@ -59,20 +72,15 @@ jobs:
           (cd out && sha256sum -- * > SHA256SUMS)
           ls -la out/
 
-      - name: Tag
-        if: steps.next.outputs.new_tag != ''
-        uses: mathieudutour/github-tag-action@v6.2
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          release_branches: main
-          default_bump: false
-
+      # `gh release create` makes the tag itself, so no separate tagging
+      # step: one writer, and a build failure above leaves no orphan tag.
       - name: Release
-        if: steps.next.outputs.new_tag != ''
+        if: steps.tag.outputs.tag != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ steps.next.outputs.new_tag }}" \
-            --title "${{ steps.next.outputs.new_tag }}" \
+          gh release create "${{ steps.tag.outputs.tag }}" \
+            --target "$GITHUB_SHA" \
+            --title "${{ steps.tag.outputs.tag }}" \
             --generate-notes \
             out/*
