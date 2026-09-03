@@ -48,6 +48,33 @@ vcdcvt -in dump.vcd -format sqlite -out signals.db
 sqlite2drawtiming -in signals.db -signal clk -signal reset > timing.dt
 ```
 
+### Worked example
+
+This diagram comes from `vcd/files/samples/tb.vcd`, a UART testbench dump
+in this repository, through the two tools and
+[drawtiming](https://drawtiming.sourceforge.net/):
+
+```sh
+vcdcvt -in vcd/files/samples/tb.vcd -format sqlite -out tb.db
+
+# `name=>alias` renames a signal for the output. Aliases keep the labels
+# short, and drawtiming does not accept the slashes of the full paths.
+# The timescale of this dump is 1 fs; -ndots 2500000 draws one time dot
+# per 2.5 ns, and the window covers the first 40 ns.
+sqlite2drawtiming -in tb.db -min-time 0 -max-time 40000000 -ndots 2500000 \
+    -signal '//wb_uart_tb/clk=>clk' \
+    -signal '//wb_uart_tb/reset=>reset' \
+    -signal '//wb_uart_tb/clkgen/reset_n=>reset_n' \
+    > timing.dt
+
+drawtiming -o timing.png --cell-width 48 --cell-height 44 timing.dt
+```
+
+![Timing diagram of clk, reset and reset_n from the UART testbench dump](docs/timing-example.png)
+
+The clock runs from the start; at 10 ns `reset` deasserts and `reset_n`
+rises with it.
+
 Releases are cut on the fifth of each month when `fix:` or `feat:` commits
 landed since the last tag, and on demand from the [Release workflow][ww].
 The version number follows [semantic versioning][sv], computed from
