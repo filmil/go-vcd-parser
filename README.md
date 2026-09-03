@@ -11,7 +11,7 @@ are supported, such as those produced by the `nvc` VHDL simulator.
 The correct behavior of the parser is guarded by a suite of tests. Tests
 include:
 - Unit tests for specific VCD stanzas
-- Unit tests for intersting VCD snippets encountered in the wild.
+- Unit tests for interesting VCD snippets encountered in the wild.
 - Integration tests that parse realistic VCD files that were sampled from
   actual uses.
 
