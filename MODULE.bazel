@@ -1,6 +1,35 @@
-###############################################################################
-# Bazel now uses Bzlmod by default to manage external dependencies.
-# Please consider migrating your external dependencies from WORKSPACE to MODULE.bazel.
+# Bzlmod half of a hybrid setup: Go rules and dependencies stay in WORKSPACE;
+# this file adds only the hermetic C/C++ toolchain the release builds need.
 #
-# For more details, please check https://github.com/bazelbuild/bazel/issues/18958
-###############################################################################
+# Both binaries link mattn/go-sqlite3, so every build is a CGO build. The zig
+# toolchain cross-compiles that C for every release platform from one Linux
+# machine, with no compiler taken from the host.
+module(name = "go-vcd-parser")
+
+bazel_dep(name = "hermetic_cc_toolchain", version = "4.3.0")
+
+# zig's macOS headers omit resolv.h, and Go's cgo stdlib includes it, so a
+# darwin cross-build of any CGO program dies inside the Go standard library.
+# The patch writes a stub header into the zig SDK; its comment block states
+# the exact contract. Drop the patch when zig ships the header.
+single_version_override(
+    module_name = "hermetic_cc_toolchain",
+    patch_strip = 1,
+    patches = [
+        "//patches:hermetic_cc_toolchain-darwin-resolv.patch",
+        "//patches:hermetic_cc_toolchain-darwin-lresolv-wrapper.patch",
+    ],
+    version = "4.3.0",
+)
+
+toolchains = use_extension("@hermetic_cc_toolchain//toolchain:ext.bzl", "toolchains")
+use_repo(toolchains, "zig_sdk")
+
+# glibc 2.31 for the Linux targets: old enough to run on anything Debian 11
+# or newer, and pinned so the binary does not inherit the build machine's.
+register_toolchains(
+    "@zig_sdk//toolchain:linux_amd64_gnu.2.31",
+    "@zig_sdk//toolchain:linux_arm64_gnu.2.31",
+    "@zig_sdk//toolchain:darwin_amd64",
+    "@zig_sdk//toolchain:darwin_arm64",
+)

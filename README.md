@@ -14,6 +14,52 @@ include:
 - Integration tests that parse realistic VCD files that were sampled from
   actual uses.
 
+## Binaries
+
+Each [release][rr] ships prebuilt static binaries for two programs, four
+platforms each:
+
+| Program | What it does |
+|---|---|
+| `vcdcvt` | Parses a VCD file and converts it to JSON or a SQLite signals database. |
+| `sqlite2drawtiming` | Reads a SQLite signals database and writes [drawtiming](https://drawtiming.sourceforge.net/) input for selected signals to stdout. |
+
+The platforms are `linux-amd64`, `linux-arm64`, `darwin-amd64` and
+`darwin-arm64`. Download the file for your platform, make it executable, and
+put it on your `PATH`:
+
+```sh
+curl -LO https://github.com/filmil/go-vcd-parser/releases/latest/download/vcdcvt-linux-amd64
+chmod +x vcdcvt-linux-amd64
+sudo mv vcdcvt-linux-amd64 /usr/local/bin/vcdcvt
+```
+
+`SHA256SUMS` in each release covers every file. On macOS, the first run may
+need Gatekeeper approval: `xattr -d com.apple.quarantine <file>`.
+
+Typical use:
+
+```sh
+# VCD to a SQLite signals database.
+vcdcvt -in dump.vcd -format sqlite -out signals.db
+
+# Selected signals from that database, as drawtiming input.
+sqlite2drawtiming -in signals.db -signal clk -signal reset > timing.dt
+```
+
+Releases are cut on the fifth of each month when `fix:` or `feat:` commits
+landed since the last tag, and on demand from the [Release workflow][ww].
+The version number follows [semantic versioning][sv], computed from
+[conventional commits][cc]. The binaries are cross-compiled with Bazel and a
+[zig-based hermetic C toolchain][hh]; the build takes nothing from the host,
+so a release is reproducible from its tag.
+
+[rr]: https://github.com/filmil/go-vcd-parser/releases
+[ww]: https://github.com/filmil/go-vcd-parser/actions/workflows/release.yml
+[sv]: https://semver.org/
+[cc]: https://www.conventionalcommits.org/en/v1.0.0/
+[hh]: https://github.com/uber/hermetic_cc_toolchain
+
 ## Why?
 
 - **I wanted one written in go** (compiled, static, well-tested). Most open source

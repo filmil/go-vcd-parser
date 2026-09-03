@@ -1,0 +1,78 @@
+# Monthly and on-demand binary releases.
+#
+# The version comes from conventional commits: fix: bumps the patch, feat:
+# the minor, BREAKING CHANGE the major. A month with no fix or feat commits
+# produces no tag and no release, so re-running the schedule against an
+# unchanged tree is a no-op. `default_bump: false` is what enforces that;
+# without it the action invents a patch bump on every run.
+#
+# The binaries are cross-compiled from one Linux runner with the zig-based
+# hermetic C toolchain declared in MODULE.bazel. Both programs link
+# mattn/go-sqlite3, so every build is a CGO build; nothing is taken from the
+# runner but bazelisk itself.
+name: Release
+on:
+  schedule:
+    - cron: "17 6 5 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup bazel
+        uses: bazel-contrib/setup-bazel@0.15.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}
+          repository-cache: true
+
+      - name: Compute the next version
+        id: next
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          release_branches: main
+          default_bump: false
+          dry_run: true
+
+      - name: Build the release binaries
+        if: steps.next.outputs.new_tag != ''
+        run: |
+          mkdir -p out
+          for platform in linux_amd64 linux_arm64 darwin_amd64 darwin_arm64; do
+            bazel build --platforms=@zig_sdk//platform:"$platform" //bin/...
+            os="${platform%_*}"
+            arch="${platform#*_}"
+            for name in vcdcvt sqlite2drawtiming; do
+              cp "bazel-bin/bin/$name/${name}_/$name" "out/${name}-${os}-${arch}"
+            done
+          done
+          (cd out && sha256sum -- * > SHA256SUMS)
+          ls -la out/
+
+      - name: Tag
+        if: steps.next.outputs.new_tag != ''
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          release_branches: main
+          default_bump: false
+
+      - name: Release
+        if: steps.next.outputs.new_tag != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.next.outputs.new_tag }}" \
+            --title "${{ steps.next.outputs.new_tag }}" \
+            --generate-notes \
+            out/*

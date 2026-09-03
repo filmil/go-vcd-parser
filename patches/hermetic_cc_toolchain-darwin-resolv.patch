@@ -1,0 +1,93 @@
+Write darwin resolv stubs into the zig SDK.
+
+zig's bundled macOS libc headers omit resolv.h. Go's net package and
+net/internal/cgotest include it in every cgo build, so cross-compiling
+any CGO program for darwin fails inside the Go standard library with
+"fatal error: 'resolv.h' file not found".
+
+The header stub satisfies both users. net/cgo_unix_cgo_res.go needs the
+res_search declaration; cgotest compares sizeof(struct __res_state)
+against Go's internal ResState ([69]uintptr, 552 bytes) and fails to
+compile if the C struct is bigger, so the stub declares exactly that
+size. The libresolv.tbd stub serves the link step; the companion
+zig-wrapper patch points -lresolv at it. The dylib the stub names
+exists on every macOS at run time.
+
+Drop both patches when zig ships the header and a resolv stub.
+
+diff --git a/toolchain/defs.bzl b/toolchain/defs.bzl
+index 602a42d..09b90a6 100644
+--- a/toolchain/defs.bzl
++++ b/toolchain/defs.bzl
+@@ -274,6 +274,71 @@ def _zig_repository_impl(repository_ctx):
+         sha256 = repository_ctx.attr.host_platform_sha256[exec_platform],
+     )
+ 
++    # zig's macOS headers lack resolv.h, which Go's cgo stdlib includes.
++    # The stub declares res_search (resolved from libresolv at link time,
++    # only for programs importing net) and a struct __res_state of exactly
++    # 552 bytes, the size Go's internal ResState expects; cgotest fails to
++    # compile against a bigger one.
++    repository_ctx.file(
++        "lib/libc/include/any-macos-any/resolv.h",
++        "\n".join([
++            "/* Stub for zig cross-compilation to macOS; see",
++            "   hermetic_cc_toolchain-darwin-resolv.patch. */",
++            "#ifndef _RESOLV_H_",
++            "#define _RESOLV_H_",
++            "#include <sys/types.h>",
++            "struct __res_state {",
++            "  unsigned long __opaque[69];",
++            "};",
++            "typedef struct __res_state *res_state;",
++            "int res_search(const char *, int, int, unsigned char *, int);",
++            "#endif",
++            "",
++        ]),
++    )
++
++    # The linker half of the same gap: net's cgo LDFLAGS say -lresolv, and
++    # zig ships no stub for it. The wrapper rewrites the flag into the path
++    # of this stub (see the zig-wrapper.zig hunk); the dylib the stub names
++    # exists on every macOS at run time.
++    repository_ctx.file(
++        "lib/libc/darwin/libresolv.tbd",
++        "\n".join([
++            "--- !tapi-tbd",
++            "tbd-version:     4",
++            "targets:         [ x86_64-macos, arm64-macos ]",
++            "install-name:    '/usr/lib/libresolv.9.dylib'",
++            "exports:",
++            "  - targets:         [ x86_64-macos, arm64-macos ]",
++            "    symbols:         [ _res_9_init, _res_9_ninit, _res_9_nclose,",
++            "                       _res_9_nsearch, _res_9_search, _res_search ]",
++            "...",
++            "",
++        ]),
++    )
++
++    # Same trick for CoreFoundation, which Go's darwin runtime/cgo records
++    # as "-framework CoreFoundation". The framework exists on every macOS;
++    # the export list holds whichever symbols the Go runtime references.
++    repository_ctx.file(
++        "lib/libc/darwin/CoreFoundation.tbd",
++        "\n".join([
++            "--- !tapi-tbd",
++            "tbd-version:     4",
++            "targets:         [ x86_64-macos, arm64-macos ]",
++            "install-name:    '/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation'",
++            "exports:",
++            "  - targets:         [ x86_64-macos, arm64-macos ]",
++            "    symbols:         [ _CFArrayGetCount, _CFArrayGetValueAtIndex, _CFDataAppendBytes,",
++            "                       _CFDataCreateMutable, _CFDataGetBytePtr, _CFDataGetLength,",
++            "                       _CFDictionaryGetValue, _CFEqual, _CFNumberGetValue, _CFRelease,",
++            "                       _CFRetain, _CFStringCreateWithBytes, _CFStringGetCString,",
++            "                       _CFStringGetLength, _kCFAllocatorDefault ]",
++            "...",
++            "",
++        ]),
++    )
++
+     for target_config in target_structs():
+         tool_path = zig_tool_path(exec_os).format(
+             zig_tool = "c++",

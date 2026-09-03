@@ -1,0 +1,63 @@
+Rewrite the darwin link flags zig cannot serve when targeting macos.
+
+Package net's recorded cgo LDFLAGS say -lresolv. zig bundles no
+libresolv and searches no directory for it ("searched paths: none"), so
+every darwin link of a Go program that imports net fails. The companion
+defs.bzl patch writes a minimal libresolv.tbd next to zig's libc; this
+hunk makes the wrapper hand that file to the linker in place of the -l
+flag, and does the same for "-framework X" when a bundled X.tbd exists
+(dropping the pair otherwise). It also drops -Wl,-no_pie and -no-pie:
+Go's darwin/amd64 external-link path passes them, zig's linker rejects
+them, and Mach-O on current macOS is PIE-only. Inert for every
+non-macos target.
+
+diff --git a/toolchain/zig-wrapper.zig b/toolchain/zig-wrapper.zig
+index 172b518..6ec7039 100644
+--- a/toolchain/zig-wrapper.zig
++++ b/toolchain/zig-wrapper.zig
+@@ -270,7 +270,44 @@ fn parseArgs(
+     // This is needed because zig c++ doesn't handle the -u flag correctly
+     // (it tries to open the symbol name as a file instead of passing it to the linker)
+     while (argv_it.next()) |arg| {
+-        if (mem.eql(u8, arg, "-u")) {
++        if (mem.eql(u8, arg, "-lresolv") and
++            run_mode == RunMode.cc and
++            mem.indexOf(u8, run_mode.cc, "macos") != null)
++        {
++            // Package net's recorded cgo LDFLAGS ask for libresolv, and zig
++            // bundles no stub for it. Link the stub tbd written next to
++            // zig's own libc instead; the dylib it names exists on every
++            // macOS at run time.
++            const stub = try fs.path.join(arena, &[_][]const u8{
++                fs.path.dirname(zig_exe) orelse ".",
++                "lib", "libc", "darwin", "libresolv.tbd",
++            });
++            try args.append(arena, stub);
++        } else if (mem.eql(u8, arg, "-framework") and
++            run_mode == RunMode.cc and
++            mem.indexOf(u8, run_mode.cc, "macos") != null)
++        {
++            // Go's darwin runtime/cgo records "-framework CoreFoundation".
++            // zig bundles no framework stubs; hand the linker the bundled
++            // tbd for the frameworks we stub, and drop the pair otherwise
++            // rather than fail on a framework nobody can provide here.
++            if (argv_it.next()) |fw| {
++                const tbd = try std.fmt.allocPrint(arena, "{s}.tbd", .{fw});
++                const stub = try fs.path.join(arena, &[_][]const u8{
++                    fs.path.dirname(zig_exe) orelse ".",
++                    "lib", "libc", "darwin", tbd,
++                });
++                fs.cwd().access(stub, .{}) catch continue;
++                try args.append(arena, stub);
++            }
++        } else if ((mem.eql(u8, arg, "-Wl,-no_pie") or mem.eql(u8, arg, "-no-pie")) and
++            run_mode == RunMode.cc and
++            mem.indexOf(u8, run_mode.cc, "macos") != null)
++        {
++            // Go's darwin/amd64 external-link path passes -no_pie; zig's
++            // linker rejects it, and Mach-O on current macOS is PIE-only.
++            continue;
++        } else if (mem.eql(u8, arg, "-u")) {
+             // Get the next argument (the symbol name)
+             if (argv_it.next()) |symbol| {
+                 const transformed = try std.fmt.allocPrint(arena, "-Wl,-u,{s}", .{symbol});
