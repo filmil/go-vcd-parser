@@ -2,6 +2,7 @@
 
 [![Test](https://github.com/filmil/go-vcd-parser/actions/workflows/test.yml/badge.svg)](https://github.com/filmil/go-vcd-parser/actions/workflows/test.yml)
 [![Release](https://github.com/filmil/go-vcd-parser/actions/workflows/release.yml/badge.svg)](https://github.com/filmil/go-vcd-parser/actions/workflows/release.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/filmil/go-vcd-parser.svg)](https://pkg.go.dev/github.com/filmil/go-vcd-parser)
 
 This is a parser for the Value Change Dump files, a.k.a VCD file format. The
 file format is defined in the [IEEE Standard 1800-2003][vv]. Specifically, the
@@ -98,6 +99,20 @@ so a release is reproducible from its tag.
   realistic VCD file.
 - **I needed a confirmation that the code can parse realistic VCD files.** Hence,
   the test coverage. And samples of realistic VCD files used for testing.
+
+## Go documentation
+
+API documentation for every package is on [pkg.go.dev][pd]:
+
+| Package | What it holds |
+|---|---|
+| [`vcd`](https://pkg.go.dev/github.com/filmil/go-vcd-parser/vcd) | The VCD lexer and parser; parsing produces a `vcd.File`. |
+| [`cvt`](https://pkg.go.dev/github.com/filmil/go-vcd-parser/cvt) | Conversions of the parsed representation. |
+| [`db`](https://pkg.go.dev/github.com/filmil/go-vcd-parser/db) | The SQLite signal database: schema, writers, readers. |
+| [`dbq`](https://pkg.go.dev/github.com/filmil/go-vcd-parser/dbq) | The query engine over a signal database: transition lookups, values at a timestamp, timing assertions for tests. |
+| [`dbt`](https://pkg.go.dev/github.com/filmil/go-vcd-parser/dbt) | Test helpers that build small signal databases in memory. |
+
+[pd]: https://pkg.go.dev/github.com/filmil/go-vcd-parser
 
 ## Prerequisites
 
