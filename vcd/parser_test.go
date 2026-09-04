@@ -278,6 +278,48 @@ func TestResult(t *testing.T) {
 	}
 }
 
+// TestIdCodeLikeAToken covers identifier codes that look like another
+// token. A VCD writer may use any printable ASCII for a code, so a
+// code can spell a timestamp, `#0`, a real, `R0`, a state string,
+// `s1`, or a binary value, `b0`. What follows a value is the code.
+func TestIdCodeLikeAToken(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		input string
+		value string
+		code  string
+	}{
+		{"b0 #0", "b0", "#0"},
+		{"bx #1", "bx", "#1"},
+		{"b0 R0", "b0", "R0"},
+		{"b1 r1.5", "b1", "r1.5"},
+		{"b0 s1", "b0", "s1"},
+		{"b0 b0", "b0", "b0"},
+		{"b0 #", "b0", "#"},
+	}
+	parser := NewParser[File]()
+	for i, test := range tests {
+		test := test
+		t.Run(test.input, func(t *testing.T) {
+			r := strings.NewReader("$enddefinitions $end\n" + test.input + "\n")
+			f, err := parser.Parse(fmt.Sprintf("(rule %v)", i), r)
+			if err != nil {
+				t.Fatalf("parse error: %+v: %v", test.input, err)
+			}
+			if len(f.SimulationCommand) != 1 || f.SimulationCommand[0].ValueChange == nil {
+				t.Fatalf("%v: no value change: %v", test.input, spew.Sdump(f))
+			}
+			vc := f.SimulationCommand[0].ValueChange
+			if got := "b" + vc.GetValue(); got != test.value {
+				t.Errorf("%v: value %v, want %v", test.input, got, test.value)
+			}
+			if got := vc.GetIdCode(); got != test.code {
+				t.Errorf("%v: code %v, want %v", test.input, got, test.code)
+			}
+		})
+	}
+}
+
 //type VarTWrap struct {
 //V *VarT `parser:"@@"`
 //}
