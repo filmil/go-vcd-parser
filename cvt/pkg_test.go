@@ -47,6 +47,8 @@ srx_get_start_bit ^
 }
 
 // dump reads every row back, in insertion order, as comparable text.
+// Meta is included so that the two conversion paths are compared on the
+// timescale they record as well as on the values.
 func dump(t *testing.T, dbf *sql.DB) string {
 	t.Helper()
 	var b strings.Builder
@@ -62,6 +64,18 @@ func dump(t *testing.T, dbf *sql.DB) string {
 			t.Fatalf("could not scan signal: %v", err)
 		}
 		fmt.Fprintf(&b, "signal %q %v %q %v\n", name, typ, code, size)
+	}
+	meta, err := dbf.Query(`SELECT Key, Value FROM Meta ORDER BY Key`)
+	if err != nil {
+		t.Fatalf("could not query meta: %v", err)
+	}
+	defer meta.Close()
+	for meta.Next() {
+		var key, value string
+		if err := meta.Scan(&key, &value); err != nil {
+			t.Fatalf("could not scan meta: %v", err)
+		}
+		fmt.Fprintf(&b, "meta %q %q\n", key, value)
 	}
 	vals, err := dbf.Query(`SELECT Id, Timestamp, Code, Value FROM Svalues ORDER BY Id`)
 	if err != nil {

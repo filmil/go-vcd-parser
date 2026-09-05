@@ -88,7 +88,7 @@ func main() {
 			os.Exit(1)
 		}
 		ctx := context.Background()
-		dbx, err := db.OpenDB(ctx, outFile)
+		dbx, err := db.OpenBulk(ctx, outFile)
 		if err != nil {
 			glog.Errorf("could not open database: %v: %v", outFile, err)
 			os.Exit(1)
@@ -96,6 +96,12 @@ func main() {
 		defer dbx.Close()
 		if err := cvt.ConvertStream(ctx, inFile, b, dbx); err != nil {
 			glog.Errorf("could not convert: %v", err)
+			os.Exit(1)
+		}
+		// The indexes are built once, over the finished table, rather
+		// than maintained row by row during the load.
+		if err := db.FinishBulk(ctx, dbx); err != nil {
+			glog.Errorf("could not finish the load: %v", err)
 			os.Exit(1)
 		}
 

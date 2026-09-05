@@ -87,6 +87,19 @@ func CreateDBFile(name string) (bool, error) {
 
 // CreateSchema schedules a transactional schema creation.
 func CreateSchema(ctx context.Context, tx *sql.Tx) error {
+	if err := CreateTables(ctx, tx); err != nil {
+		return err
+	}
+	return CreateIndexes(ctx, tx)
+}
+
+// CreateTables creates the tables, without the indexes over them.
+//
+// Id is a plain INTEGER PRIMARY KEY rather than AUTOINCREMENT: a signals
+// database is written once and never deleted from, so the extra
+// sqlite_sequence bookkeeping AUTOINCREMENT does on every insert buys
+// nothing.
+func CreateTables(ctx context.Context, tx *sql.Tx) error {
 	_, err := tx.ExecContext(ctx, `
         CREATE TABLE
             Signals(
@@ -96,24 +109,14 @@ func CreateSchema(ctx context.Context, tx *sql.Tx) error {
                 Size INTEGER NOT NULL
             );
 
-        CREATE INDEX
-            SignalsByCode
-        ON
-            Signals(Code, Name);
-
         CREATE TABLE
             Svalues(
-                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Id INTEGER PRIMARY KEY,
                 Timestamp INTEGER NOT NULL,
                 Code TEXT NOT NULL,
                 Value TEXT NOT NULL,
                 FOREIGN KEY(Code) REFERENCES Signals(Code)
             );
-
-        CREATE INDEX
-            SvaluesByCodeAndTimestamp
-        ON
-            Svalues(Code, Timestamp, Value);
 
         CREATE TABLE
             Meta(
@@ -122,7 +125,31 @@ func CreateSchema(ctx context.Context, tx *sql.Tx) error {
             );
         `)
 	if err != nil {
-		return fmt.Errorf("could not create schema: %w", err)
+		return fmt.Errorf("could not create tables: %w", err)
+	}
+	return nil
+}
+
+// CreateIndexes creates the indexes over the tables.
+//
+// Building these after a bulk load is much cheaper than maintaining them
+// row by row during one, so the conversion defers them; see OpenBulk. It
+// is idempotent, so finishing a load into a database that already has its
+// indexes is not an error.
+func CreateIndexes(ctx context.Context, tx *sql.Tx) error {
+	_, err := tx.ExecContext(ctx, `
+        CREATE INDEX IF NOT EXISTS
+            SignalsByCode
+        ON
+            Signals(Code, Name);
+
+        CREATE INDEX IF NOT EXISTS
+            SvaluesByCodeAndTimestamp
+        ON
+            Svalues(Code, Timestamp, Value);
+        `)
+	if err != nil {
+		return fmt.Errorf("could not create indexes: %w", err)
 	}
 	return nil
 }
