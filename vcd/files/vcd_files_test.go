@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"os"
 	"path"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -24,17 +25,42 @@ func TestVCDFiles(t *testing.T) {
 			if name == "." || name == ".." || !strings.HasSuffix(name, ".vcd") || entry.IsDir() {
 				return
 			}
-			f, err := os.Open(name)
-			if err != nil {
-				t.Errorf("could not open file: %v: %v", name, err)
-			}
-			parser := vcd.NewParser[vcd.File]()
-
-			r := bufio.NewReader(f)
-
-			if _, err := parser.Parse(name, r); err != nil {
-				t.Errorf("parse error: `%v`: %+v", name, err)
+			want := parseWithGrammar(t, name)
+			got := parseStreaming(t, name)
+			// Whole realistic files must decode identically both
+			// ways. This is what keeps the two parsers from
+			// drifting apart.
+			if !reflect.DeepEqual(vcd.NormalizeForCompare(want), vcd.NormalizeForCompare(got)) {
+				t.Errorf("%v: streaming and grammar parses differ", name)
 			}
 		})
 	}
+}
+
+func parseWithGrammar(t *testing.T, name string) *vcd.File {
+	t.Helper()
+	f, err := os.Open(name)
+	if err != nil {
+		t.Fatalf("could not open file: %v: %v", name, err)
+	}
+	defer f.Close()
+	file, err := vcd.NewParser[vcd.File]().Parse(name, bufio.NewReader(f))
+	if err != nil {
+		t.Fatalf("parse error: `%v`: %+v", name, err)
+	}
+	return file
+}
+
+func parseStreaming(t *testing.T, name string) *vcd.File {
+	t.Helper()
+	f, err := os.Open(name)
+	if err != nil {
+		t.Fatalf("could not open file: %v: %v", name, err)
+	}
+	defer f.Close()
+	file, err := vcd.ParseFile(name, f)
+	if err != nil {
+		t.Fatalf("streaming parse error: `%v`: %+v", name, err)
+	}
+	return file
 }

@@ -417,6 +417,13 @@ func commonNewParser[T any](l *lexer.StatefulDefinition) *participle.Parser[T] {
 	)
 }
 
+// NewParser builds a grammar-driven parser for T.
+//
+// Parsing a whole File this way holds the input text, its entire token
+// stream and the resulting tree in memory at once, so it is limited to
+// files that comfortably fit. Prefer Parse, or ParseFile, which read the
+// same grammar as a stream. NewParser remains the way to parse a single
+// node type, as the tests do with ScopeT and TimescaleT.
 func NewParser[T any]() *participle.Parser[T] {
 	return commonNewParser[T](NewLexer())
 }

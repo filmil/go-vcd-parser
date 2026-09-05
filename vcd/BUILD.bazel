@@ -5,8 +5,11 @@ package(default_visibility = ["//visibility:public"])
 go_library(
     name = "vcd",
     srcs = [
+        "ast.go",
         "lexer.go",
         "parser.go",
+        "scan.go",
+        "stream.go",
         "var_t.go",
     ],
     importpath = "github.com/filmil/go-vcd-parser/vcd",
@@ -25,6 +28,8 @@ go_test(
     srcs = [
         "lexer_test.go",
         "parser_test.go",
+        "stream_diff_test.go",
+        "stream_test.go",
     ],
     embed = [":vcd"],
     deps = ["@com_github_davecgh_go_spew//spew"],

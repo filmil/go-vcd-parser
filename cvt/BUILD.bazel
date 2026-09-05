@@ -1,8 +1,11 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "cvt",
-    srcs = ["pkg.go"],
+    srcs = [
+        "pkg.go",
+        "sink.go",
+    ],
     importpath = "github.com/filmil/go-vcd-parser/cvt",
     visibility = ["//visibility:public"],
     deps = [
@@ -10,5 +13,17 @@ go_library(
         "//vcd",
         "@com_github_davecgh_go_spew//spew",
         "@com_github_golang_glog//:glog",
+    ],
+)
+
+go_test(
+    name = "cvt_test",
+    size = "small",
+    srcs = ["pkg_test.go"],
+    deps = [
+        ":cvt",
+        "//db",
+        "//dbt",
+        "//vcd",
     ],
 )

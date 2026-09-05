@@ -9,9 +9,9 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
-func TestBasicParse(t *testing.T) {
-	t.Parallel()
-	tests := []string{
+// basicParseInputs is shared with the differential test in
+// stream_diff_test.go, so both parsers see the same corpus.
+var basicParseInputs = []string{
 		"",
 		`$date something else $end`,
 		`$comment  this is some comment "string" $end`,
@@ -77,10 +77,12 @@ func TestBasicParse(t *testing.T) {
 		`$dumpon 1*@ x*# 0*$ bx (k $end`,
 
 		// 18.2.3.12
-		`$dumpvars x*# z*$ b0 (k $end`,
-	}
+	`$dumpvars x*# z*$ b0 (k $end`,
+}
 
-	for i, test := range tests {
+func TestBasicParse(t *testing.T) {
+	t.Parallel()
+	for i, test := range basicParseInputs {
 		test := test
 		t.Run(fmt.Sprintf("rule %v", i), func(t *testing.T) {
 			parser := NewParser[File]()
@@ -282,23 +284,25 @@ func TestResult(t *testing.T) {
 // token. A VCD writer may use any printable ASCII for a code, so a
 // code can spell a timestamp, `#0`, a real, `R0`, a state string,
 // `s1`, or a binary value, `b0`. What follows a value is the code.
-func TestIdCodeLikeAToken(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		input string
-		value string
-		code  string
-	}{
+// idCodeLikeATokenInputs is shared with the differential test.
+var idCodeLikeATokenInputs = []struct {
+	input string
+	value string
+	code  string
+}{
 		{"b0 #0", "b0", "#0"},
 		{"bx #1", "bx", "#1"},
 		{"b0 R0", "b0", "R0"},
 		{"b1 r1.5", "b1", "r1.5"},
 		{"b0 s1", "b0", "s1"},
 		{"b0 b0", "b0", "b0"},
-		{"b0 #", "b0", "#"},
-	}
+	{"b0 #", "b0", "#"},
+}
+
+func TestIdCodeLikeAToken(t *testing.T) {
+	t.Parallel()
 	parser := NewParser[File]()
-	for i, test := range tests {
+	for i, test := range idCodeLikeATokenInputs {
 		test := test
 		t.Run(test.input, func(t *testing.T) {
 			r := strings.NewReader("$enddefinitions $end\n" + test.input + "\n")

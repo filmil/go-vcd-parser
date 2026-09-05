@@ -5,14 +5,15 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/filmil/go-vcd-parser/db"
 	"github.com/filmil/go-vcd-parser/vcd"
 	"github.com/golang/glog"
 )
 
+// TxFactory opens a new transaction.
+//
+// Deprecated: the conversion holds a single transaction at a time; see Sink.
 type TxFactory func() (*sql.Tx, error)
 
 func InsertSignal(ctx context.Context, tx *sql.Tx,
@@ -24,8 +25,9 @@ func InsertSignal(ctx context.Context, tx *sql.Tx,
 }
 
 func InsertValueChange(ctx context.Context, tx *sql.Tx, ts uint64, vc *vcd.ValueChangeT) error {
-	glog.V(4).Infof("cvt.InsertValueChange: %v, %v, %v",
-		vc.GetIdCode(), vc.GetValue(), spew.Sdump(*vc))
+	if glog.V(4) {
+		glog.Infof("cvt.InsertValueChange: %v, %v", vc.GetIdCode(), vc.GetValue())
+	}
 	if err := db.AddValue(ctx, tx, ts, vc.GetIdCode(), vc.GetValue()); err != nil {
 		return fmt.Errorf("cvt.InsertValueChange: could not add value: %w", err)
 	}
@@ -35,6 +37,10 @@ func InsertValueChange(ctx context.Context, tx *sql.Tx, ts uint64, vc *vcd.Value
 // MaxTx is the maximum number of operations in a transaction.
 var MaxTx int = 100000
 
+// InsertValueChanges writes a batch of value changes, all at timestamp.
+//
+// Deprecated: use Sink, which shares one transaction with the rest of the
+// conversion instead of opening a second one alongside it.
 func InsertValueChanges(ctx context.Context, txf TxFactory, timestamp uint64, vc []*vcd.ValueChangeT) error {
 	tx, err := txf()
 	if err != nil {
@@ -43,10 +49,9 @@ func InsertValueChanges(ctx context.Context, txf TxFactory, timestamp uint64, vc
 	for i, v := range vc {
 		if i != 0 && i%MaxTx == 0 {
 			if err := tx.Commit(); err != nil {
-				return fmt.Errorf("cvt.InsertValueChanges: error in commit: %v", err)
+				return fmt.Errorf("cvt.InsertValueChanges: error in commit: %w", err)
 			}
-			tx, err = txf()
-			if err != nil {
+			if tx, err = txf(); err != nil {
 				return fmt.Errorf("cvt.InsertValueChanges: could not recreate tx: %w", err)
 			}
 		}
@@ -54,119 +59,48 @@ func InsertValueChanges(ctx context.Context, txf TxFactory, timestamp uint64, vc
 			return fmt.Errorf("cvt.InsertValueChanges: could not insert vc tx: %w", err)
 		}
 	}
-	defer func() {
-		if err := tx.Commit(); err != nil {
-			glog.Errorf("cvt.InsertValueChanges: error in commit: %v", err)
-		}
-	}()
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("cvt.InsertValueChanges: error in commit: %w", err)
+	}
 	return nil
 }
 
-// Convert translates a parsed VCD file into an empty database.
+// Convert translates an already-parsed VCD file into an empty database.
+//
+// It replays the parse tree through the same Sink that ConvertStream
+// drives, so both paths write identical rows. Prefer ConvertStream: it
+// does not need the tree in memory.
 func Convert(ctx context.Context, vcdFile *vcd.File, dbf *sql.DB) error {
-	scope := []string{"/"}
-
-	var txf TxFactory = func() (*sql.Tx, error) {
-		return dbf.Begin()
-	}
-
-	var count int
-	tx, err := txf()
+	s, err := NewSink(ctx, dbf)
 	if err != nil {
-		return fmt.Errorf("cvt.Convert: could not create a value change tx")
+		return err
 	}
 	for _, e := range vcdFile.DeclarationCommand {
-		switch {
-		case e.EndDefinitions != nil:
-			glog.V(2).Infof("cvt.Convert: enddefinitions found")
-			break
-		case e.Scope != nil:
-			scope = append(scope, e.Scope.Id)
-		case e.Upscope != nil:
-			if len(scope) < 2 {
-				continue
-			}
-			scope = scope[0 : len(scope)-1]
-		case e.Var != nil:
-			count++
-			v := e.Var
-			name := strings.Join(append(scope, v.Id.String()), "/")
-			if err := InsertSignal(ctx, tx, name, v.GetVarKind(), v.Code, v.Size); err != nil {
-				return fmt.Errorf("cvt.Convert: %w", err)
-			}
-			if count != 0 && count%MaxTx == 0 {
-				if err := tx.Commit(); err != nil {
-					return fmt.Errorf("cvt.Convert: could not add value change: %w", err)
-				}
-				tx, err = txf()
-				if err != nil {
-					return fmt.Errorf("cvt.Convert: could not create a value change tx")
-				}
-			}
+		if err := s.Declaration(e); err != nil {
+			return fmt.Errorf("cvt.Convert: %w", err)
 		}
 	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("cvt.Convert: could not add value change: %w", err)
-	}
-
-	var timestamp uint64
-	count = 0
-	tx, err = txf()
-	if err != nil {
-		return fmt.Errorf("cvt.Convert: could not create a value change tx")
-	}
 	for _, e := range vcdFile.SimulationCommand {
+		var err error
 		switch {
 		case e.SimulationTime != nil:
-			s := e.SimulationTime
-			timestamp = s.Value()
-			glog.V(3).Infof("cvt.Convert: add timestamp: %v", timestamp)
+			err = s.Timestamp(e.SimulationTime.Value(), nil)
 		case e.Dumpvars != nil:
-			d := e.Dumpvars
-			err := InsertValueChanges(ctx, txf, timestamp, d.ValueChange)
-			if err != nil {
-				return fmt.Errorf("cvt.Convert: dumpvars %w", err)
-			}
+			err = s.replayChanges(e.Dumpvars.ValueChange)
 		case e.Dumpall != nil:
-			d := e.Dumpall
-			err := InsertValueChanges(ctx, txf, timestamp, d.ValueChange)
-			if err != nil {
-				return fmt.Errorf("cvt.Convert: dumpall %w", err)
-			}
+			err = s.replayChanges(e.Dumpall.ValueChange)
 		case e.Dumpon != nil:
-			d := e.Dumpon
-			err := InsertValueChanges(ctx, txf, timestamp, d.ValueChange)
-			if err != nil {
-				return fmt.Errorf("cvt.Convert: dumpon %w", err)
-			}
+			err = s.replayChanges(e.Dumpon.ValueChange)
 		case e.Dumpoff != nil:
-			d := e.Dumpoff
-			err := InsertValueChanges(ctx, txf, timestamp, d.ValueChange)
-			if err != nil {
-				return fmt.Errorf("cvt.Convert: dumpoff %w", err)
-			}
+			err = s.replayChanges(e.Dumpoff.ValueChange)
 		case e.ValueChange != nil:
-			count++
-			v := e.ValueChange
-			err := InsertValueChange(ctx, tx, timestamp, v)
-			if err != nil {
-				return fmt.Errorf("cvt.Convert: could not add value change: %w", err)
-			}
-			if count != 0 && count%MaxTx == 0 {
-				if err := tx.Commit(); err != nil {
-					return fmt.Errorf("cvt.Convert: could not add value change: %w", err)
-				}
-				tx, err = txf()
-				if err != nil {
-					return fmt.Errorf("cvt.Convert: could not create a value change tx")
-				}
-			}
+			err = s.replayChanges([]*vcd.ValueChangeT{e.ValueChange})
 		default:
 			glog.V(3).Infof("unprocessed: %+v", e)
 		}
+		if err != nil {
+			return fmt.Errorf("cvt.Convert: %w", err)
+		}
 	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("cvt.Convert: could not add value change: %w", err)
-	}
-	return nil
+	return s.Close()
 }
