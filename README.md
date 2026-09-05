@@ -101,12 +101,42 @@ repository:
 | | peak RSS | wall time |
 |---|---|---|
 | `--format=sqlite`, before | 1.11 GB | 25.9 s |
-| `--format=sqlite`, after | 17.8 MB | 11.4 s |
+| `--format=sqlite`, now | 19 MB | 2.3 s |
 | `--format=json`, before | 2.11 GB | 11.7 s |
-| `--format=json`, after | 17.3 MB | 2.7 s |
+| `--format=json`, now | 17 MB | 2.7 s |
 
 The output is byte-for-byte what it was: the same SQLite rows in the same
 order, and the same JSON.
+
+Two separate things got it there, and the benchmarks in `vcd/files` and `db`
+keep both honest. `bazel test //db:db_test //vcd/files:files_test
+--test_output=all --test_arg=-test.bench=. --test_arg=-test.run=XXX` runs
+them.
+
+**Parsing** went from 9.5 s to 0.095 s -- `BenchmarkParseGrammar` against
+`BenchmarkParse` -- because the grammar-driven parser held the file, its
+whole token stream and the parse tree at once.
+
+**Writing the database** was then the other 90%, and takes four changes,
+each measured by a benchmark in `db/bench_test.go`:
+
+| | rows/s |
+|---|---|
+| `InsertExecPerRow` -- a statement prepared per row | ~64k |
+| `InsertPreparedPerRow` -- prepared once | ~120k |
+| `InsertBatchedIndexed` -- 128 rows per statement | ~120k |
+| `InsertBulk` -- indexes built afterwards, no journal | ~490k |
+
+The middle pair is worth a look: while the indexes exist, batching buys
+nothing, because maintaining them row by row costs more than the driver
+does. Batching only pays once the indexes are deferred.
+
+`db.OpenBulk` is what applies this, and `db.FinishBulk` builds the indexes
+at the end, leaving a database identical to one `db.OpenDB` would have
+made. It turns off the rollback journal and fsync for the load: a
+conversion writes a file that did not exist before and is worthless if the
+run fails, so there is nothing for them to protect. `db.OpenDB` is
+unchanged for every other use.
 
 To consume a dump directly, implement `vcd.Handler` and call `vcd.Parse`:
 
