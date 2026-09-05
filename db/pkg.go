@@ -90,9 +90,9 @@ func CreateSchema(ctx context.Context, tx *sql.Tx) error {
 	_, err := tx.ExecContext(ctx, `
         CREATE TABLE
             Signals(
-                Name STRING PRIMARY KEY,
+                Name TEXT PRIMARY KEY,
                 Type INTEGER NOT NULL,
-                Code STRING NOT NULL,
+                Code TEXT NOT NULL,
                 Size INTEGER NOT NULL
             );
 
@@ -105,8 +105,8 @@ func CreateSchema(ctx context.Context, tx *sql.Tx) error {
             Svalues(
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 Timestamp INTEGER NOT NULL,
-                Code STRING NOT NULL,
-                Value STRING NOT NULL,
+                Code TEXT NOT NULL,
+                Value TEXT NOT NULL,
                 FOREIGN KEY(Code) REFERENCES Signals(Code)
             );
 
@@ -114,11 +114,48 @@ func CreateSchema(ctx context.Context, tx *sql.Tx) error {
             SvaluesByCodeAndTimestamp
         ON
             Svalues(Code, Timestamp, Value);
+
+        CREATE TABLE
+            Meta(
+                Key TEXT PRIMARY KEY,
+                Value TEXT NOT NULL
+            );
         `)
 	if err != nil {
 		return fmt.Errorf("could not create schema: %w", err)
 	}
 	return nil
+}
+
+// SetMeta records one property of the file the rows came from. The
+// timestamps of Svalues count the unit the VCD's own $timescale names,
+// and neither Signals nor Svalues has anywhere to say what that unit
+// is, so a reader that wants seconds needs this table.
+func SetMeta(ctx context.Context, tx *sql.Tx, key, value string) error {
+	glog.V(2).Infof("db/SetMeta: key=%q value=%q", key, value)
+	_, err := tx.ExecContext(ctx, `
+        INSERT OR REPLACE INTO Meta(Key, Value) VALUES (?, ?);
+        `, key, value)
+	if err != nil {
+		return fmt.Errorf("db/SetMeta: could not exec tx(%q,%q): %w", key, value, err)
+	}
+	return nil
+}
+
+// GetMeta reads one property back. The second result is false when the
+// key is not there, which is what an older database gives.
+func GetMeta(ctx context.Context, tx *sql.Tx, key string) (string, bool, error) {
+	var value string
+	err := tx.QueryRowContext(ctx, `
+        SELECT Value FROM Meta WHERE Key = ? LIMIT 1;
+        `, key).Scan(&value)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, fmt.Errorf("db/GetMeta: could not query %q: %w", key, err)
+	}
+	return value, true, nil
 }
 
 func AddSignal(ctx context.Context, tx *sql.Tx,

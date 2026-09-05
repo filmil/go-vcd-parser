@@ -142,3 +142,36 @@ func TestConvertStreamCommitsAcrossTransactions(t *testing.T) {
 		t.Errorf("got %v value rows, want %v", n, want)
 	}
 }
+
+// TestTimescaleMeta checks the row that says which unit the timestamps
+// of Svalues count. Without it a reader has the numbers and no way to
+// turn them into seconds.
+func TestTimescaleMeta(t *testing.T) {
+	ctx := context.Background()
+	dbf := newDB(t, ctx)
+	file, err := vcd.NewParser[vcd.File]().Parse("(test)", strings.NewReader(vcdFiles[0]))
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+	if err := cvt.Convert(ctx, file, dbf); err != nil {
+		t.Fatalf("Convert: %v", err)
+	}
+	tx, err := dbf.Begin()
+	if err != nil {
+		t.Fatalf("could not begin: %v", err)
+	}
+	defer tx.Commit()
+	for _, want := range []struct{ key, value string }{
+		{"generator", "go-vcd-parser"},
+		{"timescale", "1ns"},
+		{"timescale_seconds", "1e-09"},
+	} {
+		got, ok, err := db.GetMeta(ctx, tx, want.key)
+		if err != nil {
+			t.Fatalf("could not read %q: %v", want.key, err)
+		}
+		if !ok || got != want.value {
+			t.Errorf("%s is %q, %v; want %q", want.key, got, ok, want.value)
+		}
+	}
+}
