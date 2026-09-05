@@ -20,7 +20,11 @@ go_library(
 vcd_go_test(
     name = "dbq_test",
     size = "small",
-    srcs = ["pkg_test.go"],
+    srcs = [
+        "pkg_test.go",
+        "realdb_test.go",
+        "timescale_test.go",
+    ],
     embed = [":dbq"],
     vcd_file = "//vcd/files/samples:tb_example",
     deps = [

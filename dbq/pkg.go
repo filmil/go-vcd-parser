@@ -8,6 +8,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
@@ -55,6 +56,11 @@ type Timestamp struct {
 	err  error
 	name string
 	val  string
+
+	// tickFs is how many femtoseconds one raw timestamp counts, taken
+	// from the Meta table of the database the timestamp came from. Zero
+	// means the database did not say, and DefaultTickFs is used.
+	tickFs int64
 }
 
 // Pretty-prints a Timestamp.
@@ -91,19 +97,86 @@ func (self Timestamp) T() uint64 {
 	return *self.ts
 }
 
+// DefaultTickFs is the resolution assumed for a database whose Meta table
+// does not record one: one picosecond per tick. Databases written before
+// Meta existed are read exactly as they were before.
+const DefaultTickFs = 1000
+
+// Fs returns the timestamp in femtoseconds, which is exact for every
+// timescale a VCD can declare.
+//
+// REQUIRES: self.IsNone() == false
+func (self Timestamp) Fs() int64 {
+	return int64(self.T()) * self.resolution()
+}
+
+// D returns the timestamp as a duration.
+//
+// A time.Duration counts whole nanoseconds, so a dump finer than that --
+// and 1fs is common -- loses the sub-nanosecond part here. Use Fs when
+// that matters.
+//
+// REQUIRES: self.IsNone() == false
 func (self Timestamp) D() time.Duration {
-	// Assumes sim resolution of 1s.
-	return time.Duration(self.T()) * time.Nanosecond / 1000
+	return time.Duration(self.Fs() / 1_000_000)
+}
+
+// resolution is the femtoseconds per tick to use for this timestamp.
+func (self Timestamp) resolution() int64 {
+	if self.tickFs == 0 {
+		return DefaultTickFs
+	}
+	return self.tickFs
 }
 
 type Instance struct {
 	db *sql.DB
+
+	// tickFs is how many femtoseconds one raw timestamp counts. Read
+	// once here rather than per query, since it cannot change.
+	tickFs int64
 }
 
-func New(db *sql.DB) *Instance {
+func New(dbx *sql.DB) *Instance {
 	return &Instance{
-		db: db,
+		db:     dbx,
+		tickFs: readTickFs(dbx),
 	}
+}
+
+// readTickFs reads the simulation resolution out of the Meta table.
+//
+// A database written before Meta existed, or by a writer that does not
+// record a timescale, reports DefaultTickFs, so such a database keeps
+// behaving exactly as it did.
+func readTickFs(dbx *sql.DB) int64 {
+	ctx := context.Background()
+	tx, err := dbx.Begin()
+	if err != nil {
+		glog.V(1).Infof("dbq: could not read the timescale: %v", err)
+		return DefaultTickFs
+	}
+	defer tx.Rollback()
+	text, ok, err := db.GetMeta(ctx, tx, "timescale_seconds")
+	if err != nil || !ok {
+		glog.V(1).Infof("dbq: no timescale recorded, assuming %v fs per tick",
+			DefaultTickFs)
+		return DefaultTickFs
+	}
+	sec, err := strconv.ParseFloat(text, 64)
+	if err != nil || sec <= 0 {
+		glog.V(1).Infof("dbq: timescale %q is not a positive number", text)
+		return DefaultTickFs
+	}
+	// Every VCD timescale is a power of ten times 1, 10 or 100 seconds,
+	// and femtoseconds is the finest of them, so this rounds to an exact
+	// integer for any real file.
+	fs := math.Round(sec * 1e15)
+	if fs < 1 {
+		glog.V(1).Infof("dbq: timescale %q is finer than a femtosecond", text)
+		return DefaultTickFs
+	}
+	return int64(fs)
 }
 
 func (self *Instance) Signal(name string) *Signal {
@@ -126,11 +199,18 @@ func (self Signal) Name() string {
 	return self.name
 }
 
-func (self *Signal) findSignal(t *Timestamp, val string, q string) *Timestamp {
-	ret := &Timestamp{
-		name: self.name,
-		val:  val,
+// newTimestamp starts a result for this signal, carrying the resolution
+// of the database it is being read from.
+func (self *Signal) newTimestamp(val string) Timestamp {
+	return Timestamp{
+		name:   self.name,
+		val:    val,
+		tickFs: self.i.tickFs,
 	}
+}
+
+func (self *Signal) findSignal(t *Timestamp, val string, q string) *Timestamp {
+	ret := ptr(self.newTimestamp(val))
 	if t.IsNone() {
 		return ret
 	}
@@ -309,10 +389,7 @@ func (self *Signal) ValueAt(t *Timestamp) *Value {
 }
 
 func (self *Signal) FindFirst(val string) *Timestamp {
-	ret := &Timestamp{
-		name: self.name,
-		val:  val,
-	}
+	ret := ptr(self.newTimestamp(val))
 	ctx := context.TODO()
 	dbx := self.i.db
 	tx, err := dbx.Begin()
@@ -347,7 +424,7 @@ func (self *Signal) FindFirst(val string) *Timestamp {
 }
 
 func (self *Signal) PrevChange(t *Timestamp) *Timestamp {
-	var ret Timestamp
+	ret := self.newTimestamp("")
 	ctx := context.TODO()
 	dbx := self.i.db
 	tx, err := dbx.Begin()
@@ -393,7 +470,7 @@ func (self *Signal) PrevChange(t *Timestamp) *Timestamp {
 // NextChange finds the *next* timestamp at which the signal changes value,
 // starting from the given timestamp `t`.
 func (self *Signal) NextChange(t *Timestamp) *Timestamp {
-	var ret Timestamp
+	ret := self.newTimestamp("")
 	ctx := context.TODO()
 	dbx := self.i.db
 	tx, err := dbx.Begin()
