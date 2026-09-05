@@ -47,6 +47,8 @@ srx_get_start_bit ^
 }
 
 // dump reads every row back, in insertion order, as comparable text.
+// Meta is included so that the two conversion paths are compared on the
+// timescale they record as well as on the values.
 func dump(t *testing.T, dbf *sql.DB) string {
 	t.Helper()
 	var b strings.Builder
@@ -62,6 +64,18 @@ func dump(t *testing.T, dbf *sql.DB) string {
 			t.Fatalf("could not scan signal: %v", err)
 		}
 		fmt.Fprintf(&b, "signal %q %v %q %v\n", name, typ, code, size)
+	}
+	meta, err := dbf.Query(`SELECT Key, Value FROM Meta ORDER BY Key`)
+	if err != nil {
+		t.Fatalf("could not query meta: %v", err)
+	}
+	defer meta.Close()
+	for meta.Next() {
+		var key, value string
+		if err := meta.Scan(&key, &value); err != nil {
+			t.Fatalf("could not scan meta: %v", err)
+		}
+		fmt.Fprintf(&b, "meta %q %q\n", key, value)
 	}
 	vals, err := dbf.Query(`SELECT Id, Timestamp, Code, Value FROM Svalues ORDER BY Id`)
 	if err != nil {
@@ -140,5 +154,38 @@ func TestConvertStreamCommitsAcrossTransactions(t *testing.T) {
 	// Three in the $dumpvars block, two at #10, two at #20.
 	if want := 7; n != want {
 		t.Errorf("got %v value rows, want %v", n, want)
+	}
+}
+
+// TestTimescaleMeta checks the row that says which unit the timestamps
+// of Svalues count. Without it a reader has the numbers and no way to
+// turn them into seconds.
+func TestTimescaleMeta(t *testing.T) {
+	ctx := context.Background()
+	dbf := newDB(t, ctx)
+	file, err := vcd.NewParser[vcd.File]().Parse("(test)", strings.NewReader(vcdFiles[0]))
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+	if err := cvt.Convert(ctx, file, dbf); err != nil {
+		t.Fatalf("Convert: %v", err)
+	}
+	tx, err := dbf.Begin()
+	if err != nil {
+		t.Fatalf("could not begin: %v", err)
+	}
+	defer tx.Commit()
+	for _, want := range []struct{ key, value string }{
+		{"generator", "go-vcd-parser"},
+		{"timescale", "1ns"},
+		{"timescale_seconds", "1e-09"},
+	} {
+		got, ok, err := db.GetMeta(ctx, tx, want.key)
+		if err != nil {
+			t.Fatalf("could not read %q: %v", want.key, err)
+		}
+		if !ok || got != want.value {
+			t.Errorf("%s is %q, %v; want %q", want.key, got, ok, want.value)
+		}
 	}
 }
