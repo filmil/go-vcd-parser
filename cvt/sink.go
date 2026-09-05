@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
@@ -34,7 +35,11 @@ func NewSink(ctx context.Context, dbf *sql.DB) (*Sink, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cvt.NewSink: could not begin: %w", err)
 	}
-	return &Sink{ctx: ctx, dbf: dbf, tx: tx, scope: []string{"/"}}, nil
+	s := &Sink{ctx: ctx, dbf: dbf, tx: tx, scope: []string{"/"}}
+	if err := db.SetMeta(ctx, tx, "generator", "go-vcd-parser"); err != nil {
+		return nil, fmt.Errorf("cvt.NewSink: %w", err)
+	}
+	return s, nil
 }
 
 // step counts one written row and rolls the transaction over when it grows
@@ -78,6 +83,16 @@ func (s *Sink) Declaration(e *vcd.DeclarationCommandT) error {
 			return nil
 		}
 		s.scope = s.scope[:len(s.scope)-1]
+	case e.Timescale != nil:
+		// The timestamps of Svalues count this unit, and neither
+		// Signals nor Svalues has anywhere to say which unit that is.
+		if err := db.SetMeta(s.ctx, s.tx, "timescale", timescaleText(e.Timescale)); err != nil {
+			return fmt.Errorf("cvt.Sink: %w", err)
+		}
+		sec := strconv.FormatFloat(e.Timescale.AsSeconds(), 'g', -1, 64)
+		if err := db.SetMeta(s.ctx, s.tx, "timescale_seconds", sec); err != nil {
+			return fmt.Errorf("cvt.Sink: %w", err)
+		}
 	case e.Var != nil:
 		v := e.Var
 		name := strings.Join(append(s.scope, v.Id.String()), "/")
@@ -141,4 +156,32 @@ func (s *Sink) replayChanges(vcs []*vcd.ValueChangeT) error {
 		}
 	}
 	return nil
+}
+
+// timescaleText spells a $timescale the way the file writes it, `1ps`.
+func timescaleText(t *vcd.TimescaleT) string {
+	return fmt.Sprintf("%d%s", t.Number, unitName(t.Unit))
+}
+
+// unitName is the suffix of a time unit, empty for a unit the parser
+// did not fill in.
+func unitName(u *vcd.TimeUnit) string {
+	if u == nil {
+		return ""
+	}
+	switch {
+	case u.Second:
+		return "s"
+	case u.MilliSecond:
+		return "ms"
+	case u.MicroSecond:
+		return "us"
+	case u.NanoSecond:
+		return "ns"
+	case u.PicoSecond:
+		return "ps"
+	case u.FemtoSecond:
+		return "fs"
+	}
+	return ""
 }
