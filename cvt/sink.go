@@ -22,6 +22,7 @@ type Sink struct {
 	ctx context.Context
 	dbf *sql.DB
 	tx  *sql.Tx
+	ins *db.Inserter
 
 	scope     []string
 	timestamp uint64
@@ -30,11 +31,38 @@ type Sink struct {
 
 // NewSink opens the first transaction on dbf.
 func NewSink(ctx context.Context, dbf *sql.DB) (*Sink, error) {
-	tx, err := dbf.Begin()
-	if err != nil {
-		return nil, fmt.Errorf("cvt.NewSink: could not begin: %w", err)
+	s := &Sink{ctx: ctx, dbf: dbf, scope: []string{"/"}}
+	if err := s.begin(); err != nil {
+		return nil, fmt.Errorf("cvt.NewSink: %w", err)
 	}
-	return &Sink{ctx: ctx, dbf: dbf, tx: tx, scope: []string{"/"}}, nil
+	return s, nil
+}
+
+// begin opens a transaction and prepares the insert statements on it.
+func (s *Sink) begin() error {
+	tx, err := s.dbf.Begin()
+	if err != nil {
+		return fmt.Errorf("could not begin: %w", err)
+	}
+	ins, err := db.Prepare(s.ctx, tx)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	s.tx, s.ins = tx, ins
+	return nil
+}
+
+// commit closes the statements and commits the transaction.
+func (s *Sink) commit() error {
+	if err := s.ins.Close(); err != nil {
+		return fmt.Errorf("could not close statements: %w", err)
+	}
+	if err := s.tx.Commit(); err != nil {
+		return fmt.Errorf("could not commit: %w", err)
+	}
+	s.tx, s.ins = nil, nil
+	return nil
 }
 
 // step counts one written row and rolls the transaction over when it grows
@@ -44,14 +72,12 @@ func (s *Sink) step() error {
 	if s.count%MaxTx != 0 {
 		return nil
 	}
-	if err := s.tx.Commit(); err != nil {
-		return fmt.Errorf("cvt: could not commit: %w", err)
+	if err := s.commit(); err != nil {
+		return fmt.Errorf("cvt: %w", err)
 	}
-	tx, err := s.dbf.Begin()
-	if err != nil {
-		return fmt.Errorf("cvt: could not begin: %w", err)
+	if err := s.begin(); err != nil {
+		return fmt.Errorf("cvt: %w", err)
 	}
-	s.tx = tx
 	return nil
 }
 
@@ -60,10 +86,8 @@ func (s *Sink) Close() error {
 	if s.tx == nil {
 		return nil
 	}
-	tx := s.tx
-	s.tx = nil
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("cvt: could not commit: %w", err)
+	if err := s.commit(); err != nil {
+		return fmt.Errorf("cvt: %w", err)
 	}
 	return nil
 }
@@ -81,7 +105,7 @@ func (s *Sink) Declaration(e *vcd.DeclarationCommandT) error {
 	case e.Var != nil:
 		v := e.Var
 		name := strings.Join(append(s.scope, v.Id.String()), "/")
-		if err := InsertSignal(s.ctx, s.tx, name, v.GetVarKind(), v.Code, v.Size); err != nil {
+		if err := s.ins.AddSignal(s.ctx, name, v.GetVarKind(), v.Code, v.Size); err != nil {
 			return fmt.Errorf("cvt.Sink: %w", err)
 		}
 		return s.step()
@@ -106,7 +130,7 @@ func (s *Sink) addValue(code, value string) error {
 	if glog.V(4) {
 		glog.Infof("cvt.Sink.addValue: %v, %v", code, value)
 	}
-	if err := db.AddValue(s.ctx, s.tx, s.timestamp, code, value); err != nil {
+	if err := s.ins.AddValue(s.ctx, s.timestamp, code, value); err != nil {
 		return fmt.Errorf("cvt.Sink: could not add value: %w", err)
 	}
 	return s.step()
