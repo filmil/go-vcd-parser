@@ -91,6 +91,46 @@ so a release is reproducible from its tag.
 [cc]: https://www.conventionalcommits.org/en/v1.0.0/
 [hh]: https://github.com/uber/hermetic_cc_toolchain
 
+## Streaming
+
+`vcdcvt` reads a dump as a stream. Memory use is proportional to the header --
+the number of signals -- and not to the length of the simulation, for both
+output formats. Converting the 11 MB `vcd/files/samples/tb.vcd` in this
+repository:
+
+| | peak RSS | wall time |
+|---|---|---|
+| `--format=sqlite`, before | 1.11 GB | 25.9 s |
+| `--format=sqlite`, after | 17.8 MB | 11.4 s |
+| `--format=json`, before | 2.11 GB | 11.7 s |
+| `--format=json`, after | 17.3 MB | 2.7 s |
+
+The output is byte-for-byte what it was: the same SQLite rows in the same
+order, and the same JSON.
+
+To consume a dump directly, implement `vcd.Handler` and call `vcd.Parse`:
+
+```go
+type counter struct{ vcd.NopHandler; n int }
+
+func (c *counter) ValueChange(k vcd.ValueKind, value, idcode []byte) error {
+	c.n++
+	return nil
+}
+
+var c counter
+err := vcd.Parse("dump.vcd", f, &c)
+```
+
+Embedding `vcd.NopHandler` means only the events you care about need a method.
+The `[]byte` arguments alias the reader's buffer and are valid only for the
+duration of the call; wrap your handler in `vcd.CopyHandler` if you need to
+keep them.
+
+`vcd.ParseFile` still returns a whole `vcd.File` for callers that want the
+parse tree. It avoids holding the input text and its token stream, but the
+tree itself grows with the dump, so prefer `vcd.Parse` for very large files.
+
 ## Why?
 
 - **I wanted one written in go** (compiled, static, well-tested). Most open source
@@ -108,7 +148,7 @@ API documentation for every package is on [pkg.go.dev][pd]:
 
 | Package | What it holds |
 |---|---|
-| [`vcd`](https://pkg.go.dev/github.com/filmil/go-vcd-parser/vcd) | The VCD lexer and parser; parsing produces a `vcd.File`. |
+| [`vcd`](https://pkg.go.dev/github.com/filmil/go-vcd-parser/vcd) | The VCD lexer and parser. `vcd.Parse` streams a file to a `vcd.Handler`; `vcd.ParseFile` produces a `vcd.File`. |
 | [`cvt`](https://pkg.go.dev/github.com/filmil/go-vcd-parser/cvt) | Conversions of the parsed representation. |
 | [`db`](https://pkg.go.dev/github.com/filmil/go-vcd-parser/db) | The SQLite signal database: schema, writers, readers. |
 | [`dbq`](https://pkg.go.dev/github.com/filmil/go-vcd-parser/dbq) | The query engine over a signal database: transition lookups, values at a timestamp, timing assertions for tests. |
@@ -144,10 +184,6 @@ with the go toolkit.
 
 ## Limitations
 
-- **The parser is not streaming.** It produces an in-memory representation of the
-  VCD file before it is able to write a parsed representation out. As VCD files
-  can get extraordinarily large, you may find that some realistic large files
-  can not be parsed with success.
 - **VCD format is not ideal.** It cannot describe structured types as defined.
   Some pragmatic extensions make this better, but if you are exporting into the
   VCD format from say Vivado's `xsim`, it will produce a significantly subpar

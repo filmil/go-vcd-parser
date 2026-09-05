@@ -1,0 +1,144 @@
+package cvt
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"io"
+	"strings"
+
+	"github.com/davecgh/go-spew/spew"
+	"github.com/filmil/go-vcd-parser/db"
+	"github.com/filmil/go-vcd-parser/vcd"
+	"github.com/golang/glog"
+)
+
+// Sink writes a VCD file to a signals database as it is read. It is the
+// single conversion path: ConvertStream drives it from the streaming
+// parser, and Convert drives it from an already-parsed File.
+//
+// It holds one transaction at a time, committing every MaxTx operations.
+type Sink struct {
+	ctx context.Context
+	dbf *sql.DB
+	tx  *sql.Tx
+
+	scope     []string
+	timestamp uint64
+	count     int
+}
+
+// NewSink opens the first transaction on dbf.
+func NewSink(ctx context.Context, dbf *sql.DB) (*Sink, error) {
+	tx, err := dbf.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("cvt.NewSink: could not begin: %w", err)
+	}
+	return &Sink{ctx: ctx, dbf: dbf, tx: tx, scope: []string{"/"}}, nil
+}
+
+// step counts one written row and rolls the transaction over when it grows
+// past MaxTx.
+func (s *Sink) step() error {
+	s.count++
+	if s.count%MaxTx != 0 {
+		return nil
+	}
+	if err := s.tx.Commit(); err != nil {
+		return fmt.Errorf("cvt: could not commit: %w", err)
+	}
+	tx, err := s.dbf.Begin()
+	if err != nil {
+		return fmt.Errorf("cvt: could not begin: %w", err)
+	}
+	s.tx = tx
+	return nil
+}
+
+// Close commits the final transaction.
+func (s *Sink) Close() error {
+	if s.tx == nil {
+		return nil
+	}
+	tx := s.tx
+	s.tx = nil
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("cvt: could not commit: %w", err)
+	}
+	return nil
+}
+
+// Declaration tracks the scope stack and writes each $var as a signal.
+func (s *Sink) Declaration(e *vcd.DeclarationCommandT) error {
+	switch {
+	case e.Scope != nil:
+		s.scope = append(s.scope, e.Scope.Id)
+	case e.Upscope != nil:
+		if len(s.scope) < 2 {
+			return nil
+		}
+		s.scope = s.scope[:len(s.scope)-1]
+	case e.Var != nil:
+		v := e.Var
+		name := strings.Join(append(s.scope, v.Id.String()), "/")
+		if err := InsertSignal(s.ctx, s.tx, name, v.GetVarKind(), v.Code, v.Size); err != nil {
+			return fmt.Errorf("cvt.Sink: %w", err)
+		}
+		return s.step()
+	}
+	return nil
+}
+
+func (s *Sink) Timestamp(ts uint64, _ []byte) error {
+	glog.V(3).Infof("cvt.Sink: timestamp: %v", ts)
+	s.timestamp = ts
+	return nil
+}
+
+func (s *Sink) ValueChange(kind vcd.ValueKind, value, idcode []byte) error {
+	return s.addValue(string(idcode), string(kind.Payload(value)))
+}
+
+func (s *Sink) addValue(code, value string) error {
+	// Note the explicit guard: glog.V(4).Infof would evaluate its
+	// arguments -- including a full spew dump -- on every value change,
+	// at every verbosity.
+	if glog.V(4) {
+		glog.Infof("cvt.Sink.addValue: %v, %v", code, value)
+	}
+	if err := db.AddValue(s.ctx, s.tx, s.timestamp, code, value); err != nil {
+		return fmt.Errorf("cvt.Sink: could not add value: %w", err)
+	}
+	return s.step()
+}
+
+func (s *Sink) DumpBegin(vcd.DumpKind) error { return nil }
+func (s *Sink) DumpEnd(vcd.DumpKind) error   { return nil }
+
+func (s *Sink) Directive(string, []byte) error { return nil }
+
+// ConvertStream reads a VCD file from r straight into an empty database,
+// without ever holding the file, its tokens, or its parse tree in memory.
+func ConvertStream(ctx context.Context, filename string, r io.Reader, dbf *sql.DB) error {
+	s, err := NewSink(ctx, dbf)
+	if err != nil {
+		return err
+	}
+	if err := vcd.Parse(filename, r, s); err != nil {
+		return fmt.Errorf("cvt.ConvertStream: %w", err)
+	}
+	return s.Close()
+}
+
+// replayChanges feeds the value changes of a dump block to the sink.
+func (s *Sink) replayChanges(vcs []*vcd.ValueChangeT) error {
+	for _, v := range vcs {
+		if glog.V(4) {
+			glog.Infof("cvt: value change: %v", spew.Sdump(*v))
+		}
+		if err := s.addValue(v.GetIdCode(), v.GetValue()); err != nil {
+			return err
+		}
+	}
+	return nil
+}

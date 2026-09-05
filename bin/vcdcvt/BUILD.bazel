@@ -2,13 +2,17 @@ load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
     name = "vcdcvt_lib",
-    srcs = ["main.go"],
+    srcs = [
+        "jsonstream.go",
+        "main.go",
+    ],
     importpath = "github.com/filmil/go-vcd-parser/bin/vcdcvt",
     visibility = ["//visibility:private"],
     deps = [
         "//cvt",
         "//db",
         "//vcd",
+        "@com_github_alecthomas_participle_v2//lexer",
         "@com_github_golang_glog//:glog",
     ],
 )

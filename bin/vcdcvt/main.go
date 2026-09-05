@@ -4,10 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/csv"
-	"encoding/json"
 	"flag"
-	"fmt"
-	"io"
 	"os"
 	"strconv"
 	"time"
@@ -17,17 +14,6 @@ import (
 	"github.com/filmil/go-vcd-parser/vcd"
 	"github.com/golang/glog"
 )
-
-func run(r io.Reader, filename string) (*vcd.File, error) {
-
-	parser := vcd.NewParser[vcd.File]()
-	ast, err := parser.Parse(filename, r)
-	if err != nil {
-		return nil, fmt.Errorf("parse error: %w", err)
-	}
-
-	return ast, nil
-}
 
 func main() {
 	var inFile, outFile, outFmt, signalFile string
@@ -62,17 +48,9 @@ func main() {
 
 	b := bufio.NewReaderSize(file, 1000000)
 
-	start := time.Now()
-	glog.Infof("parsing input from: %v", inFile)
-	ast, err := run(b, inFile)
-	if err != nil {
-		glog.Errorf("error: %v: %v", inFile, err)
-		os.Exit(1)
-	}
-
-	endLoad := time.Now()
-	glog.Infof("parsing took: %v", endLoad.Sub(start))
-	glog.Infof("writing output to: %v", outFile)
+	// Both output formats consume the file as it is read, so memory use
+	// does not grow with the size of the dump.
+	glog.Infof("converting %v to %v", inFile, outFile)
 	startWrite := time.Now()
 	if outFmt == "json" {
 		of, err := os.Create(outFile)
@@ -80,14 +58,19 @@ func main() {
 			glog.Errorf("error: %v: %v", outFile, err)
 			os.Exit(1)
 		}
-
-		e := json.NewEncoder(of)
-		e.SetIndent("", "  ")
-		e.SetEscapeHTML(false)
 		defer of.Close()
-
-		if err := e.Encode(ast); err != nil {
-			glog.Infof("cannot encode: %v: %v", outFile, err)
+		w := bufio.NewWriterSize(of, 1000000)
+		j := newJSONWriter(w)
+		if err := vcd.Parse(inFile, b, j); err != nil {
+			glog.Errorf("error: %v: %v", inFile, err)
+			os.Exit(1)
+		}
+		if err := j.Close(); err != nil {
+			glog.Errorf("cannot encode: %v: %v", outFile, err)
+			os.Exit(1)
+		}
+		if err := w.Flush(); err != nil {
+			glog.Errorf("cannot write: %v: %v", outFile, err)
 			os.Exit(1)
 		}
 	}
@@ -111,7 +94,7 @@ func main() {
 			os.Exit(1)
 		}
 		defer dbx.Close()
-		if err := cvt.Convert(ctx, ast, dbx); err != nil {
+		if err := cvt.ConvertStream(ctx, inFile, b, dbx); err != nil {
 			glog.Errorf("could not convert: %v", err)
 			os.Exit(1)
 		}

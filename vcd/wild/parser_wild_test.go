@@ -2,9 +2,11 @@ package vcd
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/filmil/go-vcd-parser/vcd"
 )
 
@@ -44,12 +46,22 @@ func TestParseFromTheWild(t *testing.T) {
 	for i, test := range tests {
 		test := test
 		t.Run(fmt.Sprintf("rule %v", i), func(t *testing.T) {
+			name := fmt.Sprintf("(rule %v)", i)
 			parser := vcd.NewParser[vcd.File]()
-			r := strings.NewReader(test)
-			if _, err := parser.Parse(fmt.Sprintf("(rule %v)", i), r); err != nil {
-				t.Errorf("parse error: `%v`: %+v", test, err)
+			want, err := parser.Parse(name, strings.NewReader(test))
+			if err != nil {
+				t.Fatalf("parse error: `%v`: %+v", test, err)
 			}
-
+			// The streaming parser must agree with the grammar on
+			// every stanza seen in the wild.
+			got, err := vcd.ParseFile(name, strings.NewReader(test))
+			if err != nil {
+				t.Fatalf("streaming parse error: `%v`: %+v", test, err)
+			}
+			if !reflect.DeepEqual(vcd.NormalizeForCompare(want), vcd.NormalizeForCompare(got)) {
+				t.Errorf("`%v`:\nwant: %v\ngot:  %v",
+					test, spew.Sdump(want), spew.Sdump(got))
+			}
 		})
 	}
 }
