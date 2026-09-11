@@ -1,0 +1,38 @@
+# libfst, the FST reader and writer library GTKWave uses.
+#
+# Vendored from https://github.com/gtkwave/libfst at the revision in
+# LIBFST_VERSION. MIT licensed; see LICENSE, which also covers the LZ4 and
+# FastLZ sources bundled in it.
+#
+# Regenerating: copy src/*.c, src/*.h and LICENSE from a checkout, and write
+# the revision into LIBFST_VERSION. Nothing here is patched.
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+licenses(["notice"])
+
+exports_files(["LICENSE"])
+
+cc_library(
+    name = "libfst",
+    srcs = [
+        "fastlz.c",
+        "fstapi.c",
+        "lz4.c",
+    ],
+    hdrs = [
+        "fastlz.h",
+        "fst_win_unistd.h",
+        "fstapi.h",
+        "lz4.h",
+    ],
+    # The cgo code in //fst includes "fstapi.h" by name, and this puts the
+    # directory holding it on the include path of every dependent.
+    includes = ["."],
+    # libfst's own build sets this. Its meson file also asks for bzip2, but
+    # no source refers to it, so zlib is the only library it needs.
+    local_defines = ["_GNU_SOURCE"],
+    deps = ["@zlib"],
+)
