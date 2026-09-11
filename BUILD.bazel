@@ -9,4 +9,3 @@ gazelle(name = "gazelle")
 buildifier(
     name = "buildifier",
 )
-
