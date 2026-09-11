@@ -10,6 +10,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/filmil/go-vcd-parser/db"
+	"github.com/filmil/go-vcd-parser/fst"
 	"github.com/filmil/go-vcd-parser/vcd"
 	"github.com/golang/glog"
 )
@@ -207,4 +208,18 @@ func unitName(u *vcd.TimeUnit) string {
 		return "fs"
 	}
 	return ""
+}
+
+// ConvertFST reads an FST dump straight into an empty database, on the same
+// terms as ConvertStream. FST indexes its value change blocks from a table
+// at the end of the file, so this takes a path rather than an io.Reader.
+func ConvertFST(ctx context.Context, path string, dbf *sql.DB) error {
+	s, err := NewSink(ctx, dbf)
+	if err != nil {
+		return err
+	}
+	if err := fst.Parse(path, s); err != nil {
+		return fmt.Errorf("cvt.ConvertFST: %w", err)
+	}
+	return s.Close()
 }

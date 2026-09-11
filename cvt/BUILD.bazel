@@ -10,6 +10,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//db",
+        "//fst",
         "//vcd",
         "@com_github_davecgh_go_spew//spew",
         "@com_github_golang_glog//:glog",
