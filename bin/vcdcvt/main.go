@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"database/sql"
 	"encoding/csv"
 	"flag"
 	"fmt"
@@ -82,6 +83,8 @@ func main() {
 			parse = func() error { return fst.Parse(inFile, j) }
 		}
 		if err := parse(); err != nil {
+			of.Close()
+			os.Remove(outFile)
 			glog.Errorf("error: %v: %v", inFile, err)
 			os.Exit(1)
 		}
@@ -119,12 +122,14 @@ func main() {
 			convert = func() error { return cvt.ConvertFST(ctx, inFile, dbx) }
 		}
 		if err := convert(); err != nil {
+			discard(dbx, outFile)
 			glog.Errorf("could not convert: %v", err)
 			os.Exit(1)
 		}
 		// The indexes are built once, over the finished table, rather
 		// than maintained row by row during the load.
 		if err := db.FinishBulk(ctx, dbx); err != nil {
+			discard(dbx, outFile)
 			glog.Errorf("could not finish the load: %v", err)
 			os.Exit(1)
 		}
@@ -181,4 +186,19 @@ func readFST(inFmt, inFile string) (bool, error) {
 		return strings.EqualFold(filepath.Ext(inFile), ".fst"), nil
 	}
 	return false, fmt.Errorf("flag --in-format=auto|vcd|fst, got: %q", inFmt)
+}
+
+// discard closes the database and removes it.
+//
+// A conversion that fails has written a file that is not a conversion of
+// anything. Leaving it behind makes a failed run look like one that produced
+// an empty result, and the next command in a script reads it as if it were
+// one. os.Exit does not run deferred closes, so this closes explicitly.
+func discard(dbx *sql.DB, path string) {
+	if err := dbx.Close(); err != nil {
+		glog.Warningf("could not close %v: %v", path, err)
+	}
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		glog.Warningf("could not remove the unfinished %v: %v", path, err)
+	}
 }
