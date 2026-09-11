@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "fstgen_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/filmil/go-vcd-parser/bin/fstgen",
+    visibility = ["//visibility:private"],
+    deps = ["//fst"],
+)
+
+go_binary(
+    name = "fstgen",
+    embed = [":fstgen_lib"],
+    visibility = ["//visibility:public"],
+)
