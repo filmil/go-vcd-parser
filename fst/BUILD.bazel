@@ -1,4 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "fst",
@@ -8,11 +8,23 @@ go_library(
         "callbacks.go",
         "fst.go",
         "hier.go",
+        "writer_support.go",
     ],
     # keep
     cdeps = ["//third_party/libfst"],
     cgo = True,
     importpath = "github.com/filmil/go-vcd-parser/fst",
     visibility = ["//visibility:public"],
+    deps = ["//vcd"],
+)
+
+go_test(
+    name = "fst_test",
+    size = "small",
+    srcs = [
+        "fst_test.go",
+        "roundtrip_test.go",
+    ],
+    embed = [":fst"],
     deps = ["//vcd"],
 )
