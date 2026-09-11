@@ -11,6 +11,11 @@ file format is defined in the [IEEE Standard 1800-2003][vv]. Specifically, the
 format supported at the moment is the 4-value format. Some pragmatic extensions
 are supported, such as those produced by the `nvc` VHDL simulator.
 
+It also reads **FST** (Fast Signal Trace), the compressed binary format written
+by GTKWave, Verilator, Icarus Verilog and `nvc`. Both formats produce the same
+events, so both convert to the same JSON and the same SQLite database. See
+[FST input](#fst-input).
+
 The correct behavior of the parser is guarded by a suite of tests. Tests
 include:
 - Unit tests for specific VCD stanzas
@@ -25,7 +30,7 @@ platforms each:
 
 | Program | What it does |
 |---|---|
-| `vcdcvt` | Parses a VCD file and converts it to JSON or a SQLite signals database. |
+| `vcdcvt` | Parses a VCD or FST dump and converts it to JSON or a SQLite signals database. |
 | `sqlite2drawtiming` | Reads a SQLite signals database and writes [drawtiming](https://drawtiming.sourceforge.net/) input for selected signals to stdout. |
 
 The platforms are `linux-amd64`, `linux-arm64`, `darwin-amd64` and
@@ -46,6 +51,9 @@ Typical use:
 ```sh
 # VCD to a SQLite signals database.
 vcdcvt -in dump.vcd -format sqlite -out signals.db
+
+# The same, from an FST dump. The .fst name is what selects the reader.
+vcdcvt -in dump.fst -format sqlite -out signals.db
 
 # Selected signals from that database, as drawtiming input.
 sqlite2drawtiming -in signals.db -signal clk -signal reset > timing.dt
@@ -90,6 +98,68 @@ so a release is reproducible from its tag.
 [sv]: https://semver.org/
 [cc]: https://www.conventionalcommits.org/en/v1.0.0/
 [hh]: https://github.com/uber/hermetic_cc_toolchain
+
+## FST input
+
+`vcdcvt` reads an FST dump wherever it reads a VCD one:
+
+```sh
+vcdcvt -in dump.fst -format sqlite -out signals.db
+vcdcvt -in dump.fst -format json   -out signals.json
+```
+
+The reader is chosen from the file name: a `.fst` extension reads FST and
+anything else reads VCD. `-in-format` overrides that for a dump named
+otherwise:
+
+```sh
+vcdcvt -in dump.bin -in-format fst -format sqlite -out signals.db
+```
+
+The two readers report the same events, through the same `vcd.Handler`
+interface, so everything downstream is shared: the same database schema, the
+same JSON, and the same `sqlite2drawtiming` output. A `vcd.Handler` written
+for VCD consumes an FST dump with no change:
+
+```go
+err := fst.Parse("dump.fst", &c)   // instead of vcd.Parse("dump.vcd", f, &c)
+```
+
+Two differences follow from the format rather than from this package:
+
+* **FST needs a file, not a stream.** Its value change blocks are reached
+  through a table at the end of the file, so `fst.Parse` takes a path and
+  seeks in it, where `vcd.Parse` takes an `io.Reader`. Memory use still does
+  not grow with the length of the simulation.
+* **Order within one timestamp is not the writer's order.** Timestamps arrive
+  in increasing order, but the changes at a single timestamp arrive in the
+  order the block holds them. They are simultaneous, so nothing is lost, but
+  code that compares two dumps has to treat one timestamp's changes as a set.
+
+The reading is done by [libfst][lf], the MIT-licensed C library split out of
+GTKWave, vendored under `third_party/libfst`. That directory's
+`LIBFST_VERSION` names the revision and its `LICENSE` holds the license,
+which also covers the LZ4 and FastLZ sources libfst bundles. It is the one
+part of this repository that is not Go.
+
+libfst is built as a `cc_library`, and zlib, the one library it needs and
+does not bundle, comes from the `zlib` module, so the cross-compiled release
+binaries stay hermetic.
+
+This is the one package that Bazel has to build. cgo compiles the C of a
+package from that package's own directory, and libfst is not in it, so
+`go build ./...` does not build `fst`. The rest of the repository still
+builds either way.
+
+Regenerate the test dump at `cvt/testdata/small.fst` with:
+
+```sh
+bazel run //bin/fstgen -- $PWD/cvt/testdata/small.fst
+```
+
+The regenerated file differs from the old one byte for byte even when nothing
+else changed, because libfst stamps the creation date into the header. The
+signals and the value changes are the same.
 
 ## Streaming
 
@@ -180,6 +250,7 @@ API documentation for every package is on [pkg.go.dev][pd]:
 |---|---|
 | [`vcd`](https://pkg.go.dev/github.com/filmil/go-vcd-parser/vcd) | The VCD lexer and parser. `vcd.Parse` streams a file to a `vcd.Handler`; `vcd.ParseFile` produces a `vcd.File`. |
 | [`cvt`](https://pkg.go.dev/github.com/filmil/go-vcd-parser/cvt) | Conversions of the parsed representation. |
+| [`fst`](https://pkg.go.dev/github.com/filmil/go-vcd-parser/fst) | The FST reader. `fst.Parse` streams a dump to the same `vcd.Handler`. |
 | [`db`](https://pkg.go.dev/github.com/filmil/go-vcd-parser/db) | The SQLite signal database: schema, writers, readers. |
 | [`dbq`](https://pkg.go.dev/github.com/filmil/go-vcd-parser/dbq) | The query engine over a signal database: transition lookups, values at a timestamp, timing assertions for tests. |
 | [`dbt`](https://pkg.go.dev/github.com/filmil/go-vcd-parser/dbt) | Test helpers that build small signal databases in memory. |
@@ -243,4 +314,5 @@ Prior art:
 [bb]: https://github.com/filmil/go-vcd-parser/issues
 [ii]: https://hdlfactory.com/note/2024/08/24/bazel-installation-via-the-bazelisk-method/
 [vv]: https://ieeexplore.ieee.org/document/10458102
+[lf]: https://github.com/gtkwave/libfst
 
