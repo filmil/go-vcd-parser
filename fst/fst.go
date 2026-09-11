@@ -87,6 +87,13 @@ func Parse(path string, h vcd.Handler) error {
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
 
+	// Check the time tables before libfst is given the file. libfst reads a
+	// malformed one as plausible ascending timestamps rather than failing,
+	// and a dump converted from it is wrong everywhere without looking it.
+	if err := validateTimeTables(path); err != nil {
+		return fmt.Errorf("fst.Parse: %v: %w", path, err)
+	}
+
 	ctx := C.fstReaderOpen(cpath)
 	if ctx == nil {
 		return fmt.Errorf("fst.Parse: %v: not an FST file, or it cannot be read", path)
