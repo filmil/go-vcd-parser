@@ -5,19 +5,25 @@ import (
 	"context"
 	"encoding/csv"
 	"flag"
+	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/filmil/go-vcd-parser/cvt"
 	"github.com/filmil/go-vcd-parser/db"
+	"github.com/filmil/go-vcd-parser/fst"
 	"github.com/filmil/go-vcd-parser/vcd"
 	"github.com/golang/glog"
 )
 
 func main() {
-	var inFile, outFile, outFmt, signalFile string
-	flag.StringVar(&inFile, "in", "", "Input filename, VCD file (required)")
+	var inFile, outFile, outFmt, inFmt, signalFile string
+	flag.StringVar(&inFile, "in", "", "Input filename, a VCD or FST dump (required)")
+	flag.StringVar(&inFmt, "in-format", "auto",
+		"Input format: auto, vcd, fst. auto reads a .fst file as FST and anything else as VCD")
 	flag.StringVar(&outFile, "out", "", "Output filename, parsed vcd.File (required)")
 	flag.StringVar(&outFmt, "format", "", "Output format to use: json, sqlite")
 	flag.StringVar(&signalFile, "signals", "", "Signals CSV file to write (optional)")
@@ -39,12 +45,21 @@ func main() {
 		glog.Errorf("flag --format=json|sqlite is required")
 		os.Exit(1)
 	}
+	isFST, err := readFST(inFmt, inFile)
+	if err != nil {
+		glog.Errorf("%v", err)
+		os.Exit(1)
+	}
 
+	// libfst opens the dump by name, because FST reaches its value change
+	// blocks through a table at the end of the file. Only the VCD path
+	// reads the handle opened here.
 	file, err := os.Open(inFile)
 	if err != nil {
 		glog.Errorf("error opening: %v: %v", inFile, err)
 		os.Exit(1)
 	}
+	defer file.Close()
 
 	b := bufio.NewReaderSize(file, 1000000)
 
@@ -61,7 +76,12 @@ func main() {
 		defer of.Close()
 		w := bufio.NewWriterSize(of, 1000000)
 		j := newJSONWriter(w)
-		if err := vcd.Parse(inFile, b, j); err != nil {
+		// Both readers report the same events, so one writer serves both.
+		parse := func() error { return vcd.Parse(inFile, b, j) }
+		if isFST {
+			parse = func() error { return fst.Parse(inFile, j) }
+		}
+		if err := parse(); err != nil {
 			glog.Errorf("error: %v: %v", inFile, err)
 			os.Exit(1)
 		}
@@ -94,7 +114,11 @@ func main() {
 			os.Exit(1)
 		}
 		defer dbx.Close()
-		if err := cvt.ConvertStream(ctx, inFile, b, dbx); err != nil {
+		convert := func() error { return cvt.ConvertStream(ctx, inFile, b, dbx) }
+		if isFST {
+			convert = func() error { return cvt.ConvertFST(ctx, inFile, dbx) }
+		}
+		if err := convert(); err != nil {
 			glog.Errorf("could not convert: %v", err)
 			os.Exit(1)
 		}
@@ -141,4 +165,20 @@ func main() {
 	endWrite := time.Now()
 	glog.Infof("Done. Writing took: %v", endWrite.Sub(startWrite))
 
+}
+
+// readFST decides whether the input is an FST dump.
+//
+// `auto` goes by the file name, which is how the dump writers name their
+// output, and is what -in-format overrides when a dump is named otherwise.
+func readFST(inFmt, inFile string) (bool, error) {
+	switch inFmt {
+	case "fst":
+		return true, nil
+	case "vcd":
+		return false, nil
+	case "auto":
+		return strings.EqualFold(filepath.Ext(inFile), ".fst"), nil
+	}
+	return false, fmt.Errorf("flag --in-format=auto|vcd|fst, got: %q", inFmt)
 }

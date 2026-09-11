@@ -11,6 +11,7 @@ go_library(
     deps = [
         "//cvt",
         "//db",
+        "//fst",
         "//vcd",
         "@com_github_alecthomas_participle_v2//lexer",
         "@com_github_golang_glog//:glog",
