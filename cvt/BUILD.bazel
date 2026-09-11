@@ -20,7 +20,11 @@ go_library(
 go_test(
     name = "cvt_test",
     size = "small",
-    srcs = ["pkg_test.go"],
+    srcs = [
+        "fst_test.go",
+        "pkg_test.go",
+    ],
+    data = glob(["testdata/**"]),
     deps = [
         ":cvt",
         "//db",

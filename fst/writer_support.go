@@ -110,3 +110,37 @@ type wstep struct {
 	time       uint64
 	timeValid  bool
 }
+
+// WriteSampleDump writes the dump that //bin/fstgen checks in for the tests
+// to read. It is exported only so that generator can call it; reading a
+// dump, which is what this package is for, does not need it.
+//
+// The dump is:
+//
+//	$timescale 1ps
+//	module top { wire clk; wire [3:0] count; module sub { wire ready } }
+//	#0   clk=0 count=0000 ready=x
+//	#10  clk=1 count=0001
+//	#20  clk=0 ready=1
+//	#30  clk=1 count=0010 ready=0
+func WriteSampleDump(path string) error {
+	v := func(name string, length int) wstep { return wstep{variable: &wsignal{name: name, length: length}} }
+	at := func(tm uint64) wstep { return wstep{time: tm, timeValid: true} }
+	set := func(i int, val string) wstep { return wstep{change: &wchange{index: i, value: val}} }
+	const clk, count, ready = 0, 1, 2
+
+	return writeTestFST(path, -12, []wstep{
+		{openScope: "top"},
+		v("clk", 1),
+		v("count [3:0]", 4),
+		{openScope: "sub"},
+		v("ready", 1),
+		{closeScope: true},
+		{closeScope: true},
+
+		at(0), set(clk, "0"), set(count, "0000"), set(ready, "x"),
+		at(10), set(clk, "1"), set(count, "0001"),
+		at(20), set(clk, "0"), set(ready, "1"),
+		at(30), set(clk, "1"), set(count, "0010"), set(ready, "0"),
+	})
+}
