@@ -8,6 +8,7 @@ go_library(
         "callbacks.go",
         "fst.go",
         "hier.go",
+        "validate.go",
         "writer_support.go",
     ],
     # keep
@@ -24,6 +25,7 @@ go_test(
     srcs = [
         "fst_test.go",
         "roundtrip_test.go",
+        "validate_test.go",
     ],
     embed = [":fst"],
     deps = ["//vcd"],
