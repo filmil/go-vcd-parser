@@ -136,6 +136,21 @@ Two differences follow from the format rather than from this package:
   order the block holds them. They are simultaneous, so nothing is lost, but
   code that compares two dumps has to treat one timestamp's changes as a set.
 
+A malformed time table is reported as an error rather than converted.
+
+FST does not flag whether a value change block's time table is compressed.
+libfst writes the compressed bytes only when they are shorter than the raw
+ones, and the reader takes "the stored length differs from the uncompressed
+length" to mean compressed. A writer whose compressed table came out exactly
+as long as the raw one produces a file that reads as raw varints, and the
+deltas decoded out of the deflate stream are plausible ascending numbers. The
+dump then converts without complaint and every timestamp in it is wrong.
+
+`vcdcvt` checks each time table before reading the dump: the declared number
+of entries has to be readable from the declared number of bytes, using all of
+them. It reports the block offset and stops, and does not leave a partly
+written output file behind.
+
 The reading is done by [libfst][lf], the MIT-licensed C library split out of
 GTKWave, vendored under `third_party/libfst`. That directory's
 `LIBFST_VERSION` names the revision and its `LICENSE` holds the license,
